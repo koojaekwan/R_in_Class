@@ -19,6 +19,7 @@ output:
 knitr::opts_chunk$set(echo=T, fig.align = "center", message=F, warning=F, fig.height = 5, cache=F, dpi = 300, dev = "png")
 ```  
 
+
 [R과 함께하는 다변량 자료분석] 의 연습문제 1.7에 해당하는 분석이다.  
 
 

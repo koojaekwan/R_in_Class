@@ -31,9 +31,8 @@ library(tidyverse)
 library(MVN)         # Multivariate normality test
 ```  
 
-```{r echo=FALSE}
-setwd("D:\\Jae Kwan\\github\\R_in_class\\Multivariate Analysis\\data")
-getwd()
+```{r}
+setwd("D:\\Jae Kwan\\github\\R_in_class\\Multivariate Analysis")
 ```  
 
 

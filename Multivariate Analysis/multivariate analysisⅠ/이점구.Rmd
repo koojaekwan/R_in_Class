@@ -1,0 +1,204 @@
+---
+title: ""
+author: "Jae Kwan Koo"
+output:
+  github_document:
+    toc: yes
+    toc_depth: 4
+  word_document: default
+  html_document:
+    fig_height: 6
+    fig_width: 10
+    highlight: textmate
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T, fig.align = "center", message=F, warning=F, fig.height = 5, cache=F, dpi = 300, dev = "png")
+```  
+
+```{r eval=FALSE}
+setwd("D:\\Jae Kwan\\github\\R_in_class\\Multivariate Analysis\\data")
+```  
+
+```{r}
+library(tidyverse)
+```  
+
+#<2.9>  
+##[trackrecord2005-men.txt]  
+
+
+```{r}
+data<-read.table("trackrecord2005-men.txt",header=T)
+
+head(data); tail(data)
+```  
+
+```{r}
+colMeans(data)
+```  
+
+```{r}
+data_long<-gather(data,key="category",value="record")
+
+data_long %>% filter(category!="Marathon") %>% ggplot(aes(x=category,y=record)) +geom_boxplot()
+
+data_long %>% filter(category=="Marathon") %>% ggplot(aes(x=category,y=record)) +
+  geom_boxplot(outlier.size=3, outlier.shape="▲", outlier.colour="red")+
+  stat_summary(fun.y="mean", geom="point", shape=21, size=3, fill="blue")
+```  
+
+```{r}
+data_long %>% ggplot(aes(x=record))+
+  geom_histogram()+
+  facet_grid(category ~ .)
+```  
+
+
+
+
+(1)Perform PCA on a given data using the covariance matrix  and correlation matrix , and compare the two results.  
+
+```{r}
+S<-cov(data)
+R<-cor(data)
+```  
+
+```{r}
+round(S,3)
+```  
+
+```{r}
+round(R,3)
+```  
+
+
+
+
+```{r}
+eigen.S<-eigen(S)
+D<-eigen.S$values # Eigenvalus
+V<-eigen.S$vectors # Eigenvaectors
+
+round(D,3)
+round(V,3)
+```  
+
+```{r}
+eigen.R<-eigen(R)
+DD<-eigen.R$values
+VV<-eigen.R$vectors
+
+round(DD,3)
+round(VV,3)
+```  
+
+
+```{r}
+gof<-D/sum(D)*100 # Goodness-of fit
+round(gof, 2)
+
+plot(D, type="b", main="Scree Graph with S", xlab="Component Number", ylab="Eigenvalue")
+text(D,labels=round(gof,3),cex=0.8,col="blue")
+```  
+
+```{r}
+gof2<-DD/sum(DD)*100
+round(gof2,2)
+
+plot(DD, type="b", main="Scree Graph with R", xlab="Component Number", ylab="Eigenvalue")
+text(DD,labels=round(gof2,3),cex=0.8,col="blue")
+```
+
+```{r}
+V2<-V[,1:2]
+round(V2,2)
+
+VV2<-VV[,1:2]
+round(VV2,2)
+
+
+Y<-scale(data, scale=F) # Centred Data Matrix
+P<-Y%*%V2            # PCs Scores
+
+Z<-scale(data,scale=T) 
+P2<-Z%*%VV2
+```
+
+```{r}
+plot(P[,1], P[, 2], main="Plot of PCs Scores", xlab="1st PC", ylab="2nd PC")
+text(P[,1], P[, 2]+0.2, labels=rownames(P), cex=0.8, col="blue")
+abline(v=0, h=0)
+```
+
+
+```{r}
+plot(P2[,1], P2[, 2], main="Plot of PCs Scores", xlab="1st PC", ylab="2nd PC")
+text(P2[,1], P2[, 2]+0.2, labels=rownames(P), cex=0.8, col="blue")
+abline(v=0, h=0)
+```
+
+```{r}
+D<-diag(sqrt(eigen.R$values[1:2]))
+corr<-VV2%*%D
+t(round(corr,3))
+```  
+
+(1) 공분산행렬 S와 상관행렬 R에 대해 PCA 수행단계를 적용하고 결과를 구하라.
+
+공분산행렬을 사용한 결과 scree plot에서 elbow가 2에서 이루어진다. 또한, 제 1주성분만으로도 약 98% 설명력을 확보하여 제 1주성분에 대한 충분한 해석이 이루어지게 된다. biplot을 2차원 공간에서 표현해주기 위해 제 2주성분까지 구해두었다. 실제로는 제 1주성분 p1을 새로운 변수로 하는 크기가 54x1을 일변량 자료행렬을 얻게 된다.
+
+상관행렬을 사용한 결과 scree plot에서 elbow가 2에서 이루어진다.또한, 제 1주성분만으로도 약 83% 설명력을 확보하여 제 1주성분에 대한 충분한 해석이 이루어지게 된다. biplot을 2차원 공간에서 표현해주기 위해 제 2주성분까지 구해두었다. 실제로는 제 1주성분 p1을 새로운 변수로 하는 크기가 54x1을 일변량 자료행렬을 얻게 된다. Marathon의 분산이 특별히 다른 변수들에 비해 크기 때문에 공분산행렬을 이용한 주성분 분석보다 상관행렬을 이용하는 것이 좋아 보인다.
+
+
+
+(2) 두 개의 주성분을 결정하고 주성분과 변수 간의 상관계수를 이용하여 주성분을 해석하라.
+
+상관행렬을 통해 1개의 eigen values의 비율이 약 83% 설명력을 가지기 때문에 1개의 eigen values에 대응하는 eigen vectors v1를 활용하여 원 변수의 선형결합 인 주성분 p1를 구해보았다.
+Z1 : x100, Z2: x200, Z3 : x400, Z4 : x800, Z5 : x1500, Z6 : x5000, Z7 : x10000, Z8 : Marathon
+
+p1 = -0.33Z1-0.35Z2-0.34Z3-0.35Z4-0.37Z5-0.37Z6-0.37Z7-0.35Z8
+
+제 1주성분 p1의 주성분계수의 모두 음(-)의 값으로 육상기록에 대한 평균적인 성분을 나타내고 있다.
+
+
+
+
+(3). (2)에서 선택한 주성분의 설명력과 스크리그림을 통해 주성분 2개가 타당함을 살펴보라.
+
+1st eigen value:83.791이고 2nd eigen value:7.98이므로 주성분 2개의 설명력이 약 92%이므로 타당하다.  
+
+
+```{r}
+pca_R<-princomp(data,cor=T)
+biplot(princomp(data,cor=T)) ; abline(h=0,v=0)
+```
+
+```{r}
+rank(-sort(P2[,1],decreasing = T))  #제1주성분점수에 의한 국가 순위
+```
+
+(4) 제 1주성분 점수에 의해 모든 국가들의 순위를 부여하고 이러한 순위가 그들 국가들에 대한 육상의 선진국과 후진국으로 알려진 것과 일치하는지를 살펴보라.
+
+주성분 점수에 대해 순위를 부여하고 실제로 육상의 선진국과 후진국으로 알려진 나라들과 비교해보니 일치함을 알 수 있다.
+
+
+(5) 주성분행렬도에서 육상기록변수들의 관계와 (4)에서 살펴본 국과들과의 관계를 시각적으로 살펴보고 설명하라.
+
+육상선진국들은 제 1주성분을 기준으로 왼편에 위치함을 알 수 있다. 모든 기록들에 대해이 작은 값을 가지고 있음을 알 수 있다.
+
+
+```{r}
+summary(pca_R,loadings = T)
+```
+
+
+(6) 우리나라는 주성분행렬도에서 육상 후진국인지를 살펴보고, 특히 어느 종목에 취약한지를 살펴보라.
+
+주성분 행렬도를 보면 제 1주성분을 봤을 시 후진국이라고 할 수 없으며, 우리나라와 (0,0) 점 간의 직선을 그엇을 때, 직선과 다른 변수들 과의 각도를 보면 100m 기록은 각도가 가장 좁아 가장 큰값을 가지는 것을 알 수 있는데 큰 값을 가진다는 것은 기록이 크다는 의미이므로 우리나라가 100m에서 가장 취약함을 알 수 있다. 반대로 장거리 기록에서는 마라톤이 가장 각도가 크므로 작은 값을 가지며, 우리나라는 마라톤에서 강세임을 알 수 있다.
+육상 후진국, 선진국이 아닌 중간정도임을 알 수 있다. 
+
+

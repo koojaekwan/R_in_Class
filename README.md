@@ -11,7 +11,7 @@ i will update for multivariate analysis(Ⅰ) contents soon.
   - Chi square test & Kolmogorov-Smirnov test  
 3. chapter3  
   - Linear Congruential Method  
-  Monte carlo method  
+  - Monte carlo method  
     - Hit or Miss  
     - Importance Sampling  
     - Sample mean method  
@@ -27,4 +27,8 @@ i will update for multivariate analysis(Ⅰ) contents soon.
 ## 2. Multivariate Analysis  
 ### (1) Multivariate Analysis Ⅰ  
 ### (2) Multivariate Analysis Ⅱ  
+- CRA(Correspondence Analysis)  
+- DCA(Discriminant Classification Analysis)  
+- MS(Multidimensional Scaling)  
+
 ## 3. Regression Analysis(Ⅱ)

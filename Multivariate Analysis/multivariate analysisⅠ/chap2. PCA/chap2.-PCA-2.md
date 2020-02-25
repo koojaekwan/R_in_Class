@@ -221,14 +221,14 @@ abline(v=0, h=0)
 
 <img src="chap2.-PCA-2_files/figure-markdown_github/unnamed-chunk-14-3.png" style="display: block; margin: auto;" />
 
-**Perform PCA on a given data using the covariance matrix and correlation matrix , and compare the two results. **
+**Perform PCA on a given data using the covariance matrix and correlation matrix , and compare the two results.**
 
 공분산행렬을 사용한 결과 scree plot에서 elbow가 2에서 이루어진다. 또한, 제 1주성분만으로도 약 87% 설명력을 확보하여 제 1주성분에 대한 충분한 해석이 이루어지게 된다. biplot을 2차원 공간에서 표현해주기 위해 제 2주성분까지 구해두었다. 실제로는 제 1주성분 p1을 새로운 변수로 하는 크기가 42x1을 일변량 자료행렬을 얻게 된다.
 
 상관행렬을 사용한 결과 scree plot에서 elbow가 4에서 이루어진다. 또한, 3개의 eigen values의 합이 70% 설명력을 넘기 때문에 3개의 고유치를 선택했다.
 3개의 주성분으로 biplot을 표현하기 위해 2개의 주성분씩 짝을 지은 3가지 그림으로 나타내었다. solar의 분산이 특별히 다른 변수들에 비해 크기 때문에 공분산행렬을 이용한 주성분 분석보다 상관행렬을 이용하는 것이 좋아 보인다.
 
-**Find the appropriate principal components with the goodness-of-fit and interpret them. **
+**Find the appropriate principal components with the goodness-of-fit and interpret them.**
 
 상관행렬을 통해 3개의 eigen values의 비율이 약 70% 설명력을 가지기 때문에 3개의 eigen values에 대응하는 eigen vectors v1,v2,v3를 활용하여 원 변수의 선형결합 인 주성분 p1,p2,p3를 구해보았다.
 
@@ -300,7 +300,7 @@ biplot(pca_R,scale=0); abline(h=0,v=0)
 
 <img src="chap2.-PCA-2_files/figure-markdown_github/unnamed-chunk-17-2.png" style="display: block; margin: auto;" />
 
-**Check the correlations between the variables through the principal component biplot and compare them with interpretations of principal components in (2). **
+**Check the correlations between the variables through the principal component biplot and compare them with interpretations of principal components in (2).**
 
 ``` r
 D<-diag(sqrt(eigen.R$values[1:3]))
@@ -325,7 +325,7 @@ t(round(corr,3))
 주성분 행렬도에서 태양 방사능이나 오존은 큰 상관관계를 보이며, 다른 오염물질과도 어느정도 관계를 보인다. 반면 풍속과는 반대 방향에 있음을 행렬도에서 알 수 있는데, 대기오염을 일으키는 물질들과는 반대 성향이라 풍속이 세면 대기오염 변수들의 측정값은 상대적으로 낮음을 알 수 있다.
 제 1 주성분에서 풍속은 나머지 요인들과는 반대 부호를 가지고 있어 행렬도에서의 해석과 같다.
 
-**Describe some relationships between the clusters of air pollution observations and variables in the biplot. **
+**Describe some relationships between the clusters of air pollution observations and variables in the biplot.**
 
 풍속의 영향성분인 제 1주성분과 관련된 1st PC의 왼편에는 대기오염이 심한곳이고 오른편에는 대기오염이 덜 심한 곳으로 그룹이 형성되어 있다.
 태양 방사능과 오존의 그룹과 나머지 변수의 대비를 나타내는 제 2주성분과 관련된 2nd PC의 위편에는 나머지 변수들이, 아래편에는 오존과 태양 방사능 그룹이 형성되고 있다.

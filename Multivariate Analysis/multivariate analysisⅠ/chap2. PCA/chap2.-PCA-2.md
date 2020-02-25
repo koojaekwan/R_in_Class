@@ -62,7 +62,7 @@ data %>% gather(key=type,value=val) %>%
   stat_summary(geom="point", fun.y=mean, col="blue", shape=17, size=2)
 ```
 
-<img src="chap2.-PCA--2-_files/figure-markdown_github/unnamed-chunk-4-1.png" style="display: block; margin: auto;" />
+<img src="chap2.-PCA-2_files/figure-markdown_github/unnamed-chunk-4-1.png" style="display: block; margin: auto;" />
 
 ``` r
 data %>% gather(key=type,value=val) %>% filter(type!="Solar") %>% 
@@ -70,7 +70,7 @@ data %>% gather(key=type,value=val) %>% filter(type!="Solar") %>%
   geom_density(alpha = 0.15)
 ```
 
-<img src="chap2.-PCA--2-_files/figure-markdown_github/unnamed-chunk-5-1.png" style="display: block; margin: auto;" />
+<img src="chap2.-PCA-2_files/figure-markdown_github/unnamed-chunk-5-1.png" style="display: block; margin: auto;" />
 
 ``` r
 data %>% gather(key=type,value=val) %>% filter(type=="Solar") %>% 
@@ -78,7 +78,7 @@ data %>% gather(key=type,value=val) %>% filter(type=="Solar") %>%
   geom_density(alpha = 0.15)
 ```
 
-<img src="chap2.-PCA--2-_files/figure-markdown_github/unnamed-chunk-5-2.png" style="display: block; margin: auto;" />
+<img src="chap2.-PCA-2_files/figure-markdown_github/unnamed-chunk-5-2.png" style="display: block; margin: auto;" />
 
 ``` r
 data %>% gather(key=type,value=val) %>% filter(type!="Solar") %>% 
@@ -86,7 +86,7 @@ data %>% gather(key=type,value=val) %>% filter(type!="Solar") %>%
   geom_density_ridges()
 ```
 
-<img src="chap2.-PCA--2-_files/figure-markdown_github/unnamed-chunk-6-1.png" style="display: block; margin: auto;" />
+<img src="chap2.-PCA-2_files/figure-markdown_github/unnamed-chunk-6-1.png" style="display: block; margin: auto;" />
 
 ``` r
 data %>% 
@@ -95,7 +95,7 @@ data %>%
   corrplot.mixed(tl.cex=0.85)
 ```
 
-<img src="chap2.-PCA--2-_files/figure-markdown_github/unnamed-chunk-7-1.png" style="display: block; margin: auto;" />
+<img src="chap2.-PCA-2_files/figure-markdown_github/unnamed-chunk-7-1.png" style="display: block; margin: auto;" />
 
 Analysis
 --------
@@ -133,7 +133,7 @@ plot(D, type="b", main="Scree Graph", xlab="Component Number", ylab="Eigenvalue"
 text(D,labels=round(gof,3),cex=0.8,col="blue")
 ```
 
-<img src="chap2.-PCA--2-_files/figure-markdown_github/unnamed-chunk-10-1.png" style="display: block; margin: auto;" />
+<img src="chap2.-PCA-2_files/figure-markdown_github/unnamed-chunk-10-1.png" style="display: block; margin: auto;" />
 
 ### Using correlation coefficient matrix
 
@@ -149,7 +149,7 @@ plot(DD, type="b", main="Scree Graph", xlab="Component Number", ylab="Eigenvalue
 text(DD,labels=round(gof2,3),cex=0.8,col="blue")
 ```
 
-<img src="chap2.-PCA--2-_files/figure-markdown_github/unnamed-chunk-11-1.png" style="display: block; margin: auto;" />
+<img src="chap2.-PCA-2_files/figure-markdown_github/unnamed-chunk-11-1.png" style="display: block; margin: auto;" />
 
 We'd better use the covariance matrix due to difference of columns unit.
 but, let's find the both.
@@ -198,28 +198,28 @@ text(P[,1], P[, 2]+2, labels=rownames(P), cex=0.8, col="blue")
 abline(v=0, h=0)
 ```
 
-<img src="chap2.-PCA--2-_files/figure-markdown_github/unnamed-chunk-13-1.png" style="display: block; margin: auto;" />
+<img src="chap2.-PCA-2_files/figure-markdown_github/unnamed-chunk-13-1.png" style="display: block; margin: auto;" />
 
 ``` r
 plot(P2[,1], P2[,2], main="Plot of PCs Scores", xlab="1st PC", ylab="2nd PC")
 abline(v=0, h=0)
 ```
 
-<img src="chap2.-PCA--2-_files/figure-markdown_github/unnamed-chunk-14-1.png" style="display: block; margin: auto;" />
+<img src="chap2.-PCA-2_files/figure-markdown_github/unnamed-chunk-14-1.png" style="display: block; margin: auto;" />
 
 ``` r
 plot(P2[,1], P2[,3], main="Plot of PCs Scores", xlab="1st PC", ylab="3rd PC")
 abline(v=0, h=0)
 ```
 
-<img src="chap2.-PCA--2-_files/figure-markdown_github/unnamed-chunk-14-2.png" style="display: block; margin: auto;" />
+<img src="chap2.-PCA-2_files/figure-markdown_github/unnamed-chunk-14-2.png" style="display: block; margin: auto;" />
 
 ``` r
 plot(P2[,2], P2[,3], main="Plot of PCs Scores", xlab="2nd PC", ylab="3rd PC")
 abline(v=0, h=0)
 ```
 
-<img src="chap2.-PCA--2-_files/figure-markdown_github/unnamed-chunk-14-3.png" style="display: block; margin: auto;" />
+<img src="chap2.-PCA-2_files/figure-markdown_github/unnamed-chunk-14-3.png" style="display: block; margin: auto;" />
 
 **Perform PCA on a given data using the covariance matrix and correlation matrix , and compare the two results. **
 
@@ -231,10 +231,13 @@ abline(v=0, h=0)
 **Find the appropriate principal components with the goodness-of-fit and interpret them. **
 
 상관행렬을 통해 3개의 eigen values의 비율이 약 70% 설명력을 가지기 때문에 3개의 eigen values에 대응하는 eigen vectors v1,v2,v3를 활용하여 원 변수의 선형결합 인 주성분 p1,p2,p3를 구해보았다.
-`: wind, Z2: solar radiation, Z3 : CO, Z4 : NO, Z5 : NO2, Z6 : O3, Z7 : HC`
+
+`Z1 : wind, Z2: solar radiation, Z3 : CO, Z4 : NO, Z5 : NO2, Z6 : O3, Z7 : HC`
 
 `p1 = 0.24Z1-0.21Z2-0.55Z3-0.38Z4-0.50Z5-0.32Z6-0.32Z7`
+
 `p2 = 0.28Z1-0.53Z2-0.01Z3+0.43Z4+0.20Z5-0.57Z6+0.31Z7`
+
 `p3 = 0.64Z1+0.22Z2-0.11Z3-0.41Z4+0.20Z5+0.16Z6+0.54Z7`
 
 제 1주성분 p1의 주성분계수의 부호가 양(+)인 Z1(wind)를 제외하면 모두 음(-)의 값으로 바람의 크기에 대한 일반적인 성분을 나타내고 있다.
@@ -289,13 +292,13 @@ summary(pca_R,loadings=T)
 screeplot(pca_R,type = "lines")
 ```
 
-<img src="chap2.-PCA--2-_files/figure-markdown_github/unnamed-chunk-17-1.png" style="display: block; margin: auto;" />
+<img src="chap2.-PCA-2_files/figure-markdown_github/unnamed-chunk-17-1.png" style="display: block; margin: auto;" />
 
 ``` r
 biplot(pca_R,scale=0); abline(h=0,v=0)
 ```
 
-<img src="chap2.-PCA--2-_files/figure-markdown_github/unnamed-chunk-17-2.png" style="display: block; margin: auto;" />
+<img src="chap2.-PCA-2_files/figure-markdown_github/unnamed-chunk-17-2.png" style="display: block; margin: auto;" />
 
 **Check the correlations between the variables through the principal component biplot and compare them with interpretations of principal components in (2). **
 
@@ -314,7 +317,9 @@ t(round(corr,3))
 `Z1 : wind, Z2: solar, Z3 : CO, Z4 : NO, Z5 : NO2, Z6 : O3, Z7 : HC`
 
 `p1 = 0.24Z1-0.21Z2-0.55Z3-0.38Z4-0.50Z5-0.32Z6-0.32Z7`
+
 `p2 = 0.28Z1-0.53Z2-0.01Z3+0.43Z4+0.20Z5-0.57Z6+0.31Z7`
+
 `p3 = 0.64Z1+0.22Z2-0.11Z3-0.41Z4+0.20Z5+0.16Z6+0.54Z7`
 
 주성분 행렬도에서 태양 방사능이나 오존은 큰 상관관계를 보이며, 다른 오염물질과도 어느정도 관계를 보인다. 반면 풍속과는 반대 방향에 있음을 행렬도에서 알 수 있는데, 대기오염을 일으키는 물질들과는 반대 성향이라 풍속이 세면 대기오염 변수들의 측정값은 상대적으로 낮음을 알 수 있다.

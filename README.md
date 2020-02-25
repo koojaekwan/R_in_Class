@@ -4,6 +4,8 @@ This contents were that i studied in class.
 i will update for multivariate analysis(Ⅰ) contents soon.
 
 ## 1. Computerized_Statistics  
+### Build models through statistical simulations.  
+
 1. chapter1  
   - System  
 2. chapter2  

@@ -1,0 +1,403 @@
+---
+title: "chap3. FA"
+author: "JaeKwanKoo"
+output:
+  github_document:
+    toc: yes
+    toc_depth: 4
+  word_document: default
+  html_document:
+    fig_height: 6
+    fig_width: 10
+    highlight: textmate
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+---  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T, fig.align = "center", message=F, warning=F, fig.height = 5, cache=F, dpi = 300, dev = "png")
+```  
+
+[Exercise 3.9] Average intake data for nine protein sources in 25 European countries.  
+
+
+```{r echo=FALSE}
+setwd("D:\\")
+```  
+
+## Library  
+
+```{r}
+# data manipulate
+library(data.table)
+library(tidyverse)
+
+# data visualization
+library(corrplot)
+library(ggridges)
+library(GGally)
+library(ggthemes)
+
+# modeling
+library(psych)
+```  
+
+## EDA  
+
+
+```{r}
+data<-fread("protein.txt", drop="번호", data.table = F)
+
+class(data)
+head(data)
+```  
+
+`drop` option is about which columns do you want to drop.  
+If you set the `data.table` option an FALSE, that will be returned class which has `data.frame`.  
+
+
+```{r}
+data_long<- data %>% gather(key="Food", value="Val", -1)
+
+head(data_long); tail(data_long)
+```  
+
+After transforming from wide to long, you can see which countries mainly consume protein from which foods.  
+
+```{r bar chart each country}
+data_long %>% ggplot(aes(x=국가, y=Val, fill=Food)) + 
+  geom_bar(position="fill", stat="identity") +
+  xlab("Country") + 
+  ylab("the amount consumed in each country") + 
+  coord_flip()
+```  
+
+Let's see which location mainly consume protein from which foods.  
+First, i designated a region by referring to the Internet.  
+
+| region | list | 
+|--| :- | 
+|동유럽 | 체코, 폴랜드, 헝가리, 루마니아, 소련, 유고슬라비아 |
+|서유럽 | 오스트리아, 프랑스, 벨기에-룩셈, 서독, 동독, 네덜란드, 스위스 |
+|남유럽 | 포르투갈, 스페인, 이탤리, 알바니아, 그리스, 불가리아 |
+|북유럽 | 영국, 스웨덴, 덴마크, 아일랜드, 핀란드, 노르웨이 |
+
+* Country names follow the names which are included the data.  
+
+```{r}
+data_location <- data_long %>% 
+                            mutate(location=
+                            case_when(국가 %in% c("오스트리아", "프랑스", "벨기에-룩셈", 
+                                                 "서독", "동독", "네덜란드", "스위스") ~ "서유럽",
+                                      국가 %in% c("영국", "스웨덴", "덴마크", "아일랜드",
+                                                 "핀랜드", "노르웨이") ~ "북유럽",
+                                      국가 %in% c("체코", "폴랜드", "헝가리",
+                                                 "루마니아", "소련", "유고슬라비아") ~ "동유럽",
+                                      국가 %in% c("포르투갈", "스페인", "이탤리", 
+                                                 "알바니아", "그리스", "불가리아") ~ "남유럽"))
+
+
+
+head(data_location); tail(data_location)
+```  
+
+```{r}
+data_location %>% ggplot(aes(x=location, y=Val, fill=Food)) + 
+  geom_bar(position="fill", stat="identity") +
+  xlab("Country") + 
+  ylab("the amount consumed in each location") + 
+  coord_flip()
+```  
+
+```{r}
+data_location %>% group_by("location") %>% 
+  ggplot(aes(x=Food, y=Val,fill=location)) + geom_boxplot()
+```  
+
+South-East Europe has a high grain ratio as a source of protein, while north-west Europe has a high milk ratio.  
+Eastern Europe has a low percentage of protein supply with fish, as it does not usually have the sea.  
+Grain and nuts are similar sources of protein by region. So is beef and milk.  
+
+```{r}
+data_location %>% 
+  ggplot(aes(x=Food, y=Val, fill=location)) + 
+  geom_bar(stat="identity") +
+  facet_wrap(~location) +
+  theme_bw() + 
+  coord_flip() +
+  labs(x="values", y="density", title="",subtitle="") +
+  theme(legend.title=element_blank(),
+        legend.position="bottom")
+```  
+
+South-east Europe has a high proportion of grain in supplying protein.  
+It can be confirmed that people in north-western Europe are supplying protein at an appropriate rate of grain, milk, beef and pig & chicken.  
+  
+
+```{r}
+data_location %>% 
+  ggplot(aes(Val, fill=Food)) + 
+  geom_density(alpha=0.30) +
+  theme_pander()
+```  
+
+```{r}
+data_location %>% 
+  ggplot(aes(x=Val, y=Food)) + 
+  geom_density_ridges()
+```  
+
+
+
+
+```{r}
+data %>% 
+  select_if(is.numeric) %>%
+  cor(use="complete.obs") %>%
+  corrplot(method = "ellipse", type = "upper", tl.srt = 45, tl.cex = 0.7)
+```  
+
+there is positive relationship between (pig & chickens) and (eggs).  
+Beef and milk, pork & chicken and eggs, grains and nuts have confirmed that we have a positive relationship to think common sense.  
+
+```{r}
+corr <- data %>% select_if(is.numeric)
+
+ggpairs(corr, title="Correlogram of Food") 
+```  
+
+## FA  
+
+```{r}
+rownames(data)<-data[,"국가"]
+data<-data %>% select(-"국가")
+
+head(data)
+```  
+
+We can set the country in rownames.  
+
+### PCFA를 실시하여 스크리그림을 통하여 인자 갯수를 정하고 총 기여율을 구하라.  
+
+
+```{r}
+X<-data; Z<-scale(X,scale=T)
+
+R<-cor(data)
+eigen_R<-eigen(R)
+V<-eigen_R$vectors
+
+
+(gof<-eigen_R$values/ncol(data)*100)
+
+
+plot(eigen_R$values,type="b", xlab="# of egenvalue", ylab="GOF", yaxt = "n")
+text(eigen_R$values, labels=round(gof,3), cex=0.9, col="blue" )
+```  
+
+
+
+```{r}
+V2<-V[,1:3]
+L<-V2%*%diag(sqrt(eigen_R$values[1:3]))
+round(L,3)    # fa scores
+
+Psi<-diag(R-L%*%t(L)) 
+# Rm<-R-(L%*%t(L)+diag(Psi))
+# round(Rm, 3)
+```  
+
+
+```{r}
+pcfa<-principal(Z, nfactors=3, rotate="none") 
+
+L2<-pcfa$loadings
+fpc<-pcfa$scores
+Psi2<-pcfa$uniquenesses
+# Rm2<-R-(L2%*%t(L2)+diag(Psi2))
+
+L2
+# round(Rm2, 3)
+```  
+
+```{r}
+gof2<-pcfa$values/ncol(data)*100
+gof2
+```  
+
+Three factors were selected because the size reduction of the eigenvalues value from factor 4 was eased.  
+Goodness of fit is `r sum(gof2[1:3])` when we selected three factors.  
+What we process using the packages is same as what we process using spectral decomposition.  
+
+
+### 인자적재값과 인자적재그림을 통하여 인자를 해석하라.  
+
+
+```{r}
+par(pty="s")   # square figure.
+lim<-range(pretty(L2))
+
+
+plot(L2[,1], L2[,2],main="(a) PC Factor Loadings : f1 and f2",  xlab="f1", ylab="f2",
+     xlim=lim, ylim=lim)
+text(L2[,1], L2[, 2], labels=rownames(L2), cex=0.8, col="blue", pos=1)
+abline(v=0, h=0)
+arrows(0,0, L2[,1], L2[, 2], col=2, code=2, length=0.1)
+```  
+
+
+
+```{r}
+par(pty="s")
+
+plot(L2[,1], L2[,3],main="(b) PC Factor Loadings : f1 and f3",  xlab="f1", ylab="f3",
+     xlim=lim, ylim=lim)
+text(L2[,1], L2[, 3], labels=rownames(L2), cex=0.8, col="blue", pos=1)
+abline(v=0, h=0)
+arrows(0,0, L2[,1], L2[, 3], col=2, code=2, length=0.1)
+```  
+
+
+```{r}
+par(pty="s")
+
+plot(L2[,2], L2[,3],main="(c) PC Factor Loadings : f2 and f3",  xlab="f2", ylab="f3",
+     xlim=lim, ylim=lim)
+text(L2[,2], L2[, 3], labels=rownames(L2), cex=0.8, col="blue", pos=1)
+abline(v=0, h=0)
+arrows(0,0, L2[,2], L2[, 3], col=2, code=2, length=0.1)
+```  
+
+First factor F1 is the factor between Western-Europe which gain the protein from beef, eggs, milk, pig & chickens and Eastern-Europe which gain the protein from nuts, grain.  
+Since fish is the greatest in the Loading F2, F2 is factor about fish.  
+F3 is factor about pig & chickens also.  
+
+Let's check the picture below specifically.  
+
+
+### 인자점수그림을 통해 유럽 25개국 군집의 형성과 특성을 살펴보라.  
+
+```{r}
+lim<-c(min(fpc)-0.3,max(fpc))
+
+
+plot(fpc[,1], fpc[,2],main=" (a) Factor Scores : f3 and f1",  xlab="f3", ylab="f1",
+     xlim=lim, ylim=lim)
+text(fpc[,1], fpc[,2], labels=rownames(fpc), cex=0.8, col="blue", pos=1)
+
+abline(v=0, h=0)
+
+points(pcfa$loadings[,1], pcfa$loadings[,2], pch=19, col = "red",labels=rownames(pcfa$loadings))
+text(pcfa$loadings[,1], pcfa$loadings[,2], labels=rownames(pcfa$loadings), cex=0.8, col="red", pos=1)
+
+arrows(0,0, L2[,1], L2[, 2], col=2, code=2, length=0.1)
+```  
+
+```{r}
+plot(fpc[,1], fpc[,3],main=" (b) Factor Scores : f3 and f2",  xlab="f3", ylab="f2",
+     xlim=lim, ylim=lim)
+text(fpc[,1], fpc[,3], labels=rownames(fpc), cex=0.8, col="blue", pos=1)
+abline(v=0, h=0)
+
+
+points(pcfa$loadings[,1], pcfa$loadings[,3], pch=19, col = "red",labels=rownames(pcfa$loadings))
+text(pcfa$loadings[,1], pcfa$loadings[,3], labels=rownames(pcfa$loadings), cex=0.8, col="red", pos=1)
+
+arrows(0,0,pcfa$loadings[,1], pcfa$loadings[,3], col=2, code=2, length=0.1)
+```  
+
+```{r}
+plot(fpc[,2], fpc[,3],main="(c) Factor Scores : f1 and f2",  xlab="f1", ylab="f2",
+     xlim=lim, ylim=lim)
+text(fpc[,2], fpc[,3], labels=rownames(fpc), cex=0.8, col="blue", pos=1)
+abline(v=0, h=0)
+
+
+points(pcfa$loadings[,2], pcfa$loadings[,3], pch=19, col = "red",labels=rownames(pcfa$loadings))
+text(pcfa$loadings[,2], pcfa$loadings[,3], labels=rownames(pcfa$loadings), cex=0.8, col="red", pos=1)
+
+arrows(0,0,pcfa$loadings[,2], pcfa$loadings[,3], col=2, code=2, length=0.1)
+```  
+
+Based on the F2 axis, portugal & spain.. etc are high in protein intake from fish.  
+Based on the F1 axis, western country is located in left side.  
+Based on the F3, countries with higher protein intake through the pig chicken are located on the right side.  
+
+It is somewhat matched by clusters of regions located in the eastern and western part.  
+It features similar eating habits that consume protein depending on the location of the country.  
+All three cases are elliptical, so we can say that data is satisfied with multivariate normality.  
+
+
+### 인재개수에 대해 MLFA를 실시하고 (2)~(3)을 시행한 후에 결과를 서로 비교하라.  
+
+#### 인자적재값과 인자적재그림을 통하여 인자를 해석하라.  
+
+```{r}
+library(psych)
+mlfa<-factanal(Z, factors = 3, rotation="varimax", score="regression")
+
+Lm<-mlfa$loading[, 1:3]
+round(Lm, 3)
+mlfa$scores
+
+
+# Psi<-mlfa$uniquenesses
+# Rm<-R-(Lm%*%t(Lm) + diag(Psi))
+```  
+
+#### 인자점수그림을 통해 유럽 25개국 군집의 형성과 특성을 살펴보라.  
+
+```{r}
+# ML Factor Loadings
+Plotlim<-range(pretty(L))
+
+plot(Lm[,1], Lm[,2],main="(a) ML Factor Loadings : f1 and f2",  xlab="f1", ylab="f2",
+     xlim=lim, ylim=lim)
+text(Lm[,1], Lm[, 2], labels=rownames(Lm), cex=1.2, col="red", pos=1)
+abline(v=0, h=0)
+
+
+points(mlfa$scores[,1],mlfa$scores[,2],pch=19,col="blue")
+text(mlfa$scores[,1], mlfa$scores[,2], labels=rownames(mlfa$scores), cex=0.8, col="blue", pos=1)
+
+points(mlfa$loadings[,1],mlfa$loadings[,2],pch=19,col="red")
+arrows(0,0, mlfa$loadings[,1], mlfa$loadings[,2], col='red', code=2, length=0.1)
+```  
+
+
+
+```{r}
+plot(Lm[,1], Lm[,3],main="(b) ML Factor Loadings : f1 and f3",  xlab="f1", ylab="f3",     xlim=lim, ylim=lim)
+text(Lm[,1], Lm[, 3], labels=rownames(Lm), cex=1.2, col="red", pos=1)
+abline(v=0, h=0)
+
+
+
+points(mlfa$scores[,1],mlfa$scores[,3],pch=19,col="blue")
+text(mlfa$scores[,1], mlfa$scores[,3], labels=rownames(mlfa$scores), cex=0.8, col="blue", pos=1)
+
+points(mlfa$loadings[,1],mlfa$loadings[,3],pch=19,col="red")
+arrows(0,0, mlfa$loadings[,1], mlfa$loadings[,3], col='red', code=2, length=0.1)
+```  
+
+```{r}
+plot(Lm[,2], Lm[,3],main="(c) ML Factor Loadings : f2 and f3",  xlab="f2", ylab="f3",     xlim=lim, ylim=lim)
+text(Lm[,2], Lm[, 3], labels=rownames(Lm), cex=1.2, col="red", pos=1)
+abline(v=0, h=0)
+arrows(0,0, Lm[,2], Lm[, 3], col=2, code=2, length=0.1)
+
+
+points(mlfa$scores[,2],mlfa$scores[,3],pch=19,col="blue")
+text(mlfa$scores[,2], mlfa$scores[,3], labels=rownames(mlfa$scores), cex=0.8, col="blue", pos=1)
+
+points(mlfa$loadings[,2],mlfa$loadings[,3],pch=19,col="red")
+arrows(0,0, mlfa$loadings[,2], mlfa$loadings[,3], col='red', code=2, length=0.1)
+```  
+f1 is the factor for the pig chicken, f2 is the factor for the contrast between Eastern European countries, which mainly eat protein through grain and nuts, and Western European countries that eat protein from beef, pork chicken, eggs, and milk, and f3 is the factor for fish.  
+
+Here, we can know that the result of PCFA is similar to the result of MLFA.  
+All three cases are elliptical, so we can say that data is satisfied with multivariate normality.  
+
+Biplot have the advantage of being able to consider the relationship between common factors and objects at the same time.  
+The smaller the angle of the variables, the more similar the variables are.  

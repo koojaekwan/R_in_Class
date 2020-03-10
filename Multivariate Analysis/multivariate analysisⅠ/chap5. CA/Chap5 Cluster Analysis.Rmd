@@ -1,0 +1,337 @@
+---
+title: "chap5. Cluster Analysis(CA)"
+author: ""
+output:
+  github_document:
+    toc: yes
+    toc_depth: 4
+  word_document: default
+  html_document:
+    highlight: textmate
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+---  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```  
+
+## Library  
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(data.table)
+
+library(proxy)  # dissimilarity matrix
+library(NbClust)
+library(cluster)    # clustering algorithms
+library(factoextra) # clustering algorithms & visualization
+
+library(gridExtra) # making grid 
+library(corrplot)
+```  
+
+```{r echo=FALSE}
+setwd("D:\\")
+```  
+
+## Description  
+
+[5.7] [data 5.8.1](kellogg.txt) For a total of 23 kinds of cereals manufactured by Kellogg, the results measured in 10 variables are standardized.  
+Here the variables are as follows.  
+
+Var | Description  
+-|-|  
+X1 | Calory  
+X2 | Protein  
+X3 | Fat  
+X4 | Natrium  
+X5 | Diet Fiber  
+X6 | compound carbohydrate  
+X7 | Sugar  
+X8  | Potassium  
+X9 | vitamins and minerals  
+X10 | Type(hot or cold)  
+
+## EDA  
+
+```{r}
+data<-read.table("kellogg.txt",header = T)
+
+rownames(data)<-data[,1]
+data<-data[,-1]
+
+
+data
+```  
+
+### Corplot  
+
+```{r}
+data %>%
+  cor(use="complete.obs") %>%
+  corrplot.mixed(tl.cex=0.85)
+```  
+
+Between Diet Fiber and (vitamins & minerals) show ours that they are very high relations.  
+
+
+### Boxplot  
+
+```{r}
+data_long <- data %>% gather(key=Variable, value=Value)
+
+data_long %>% ggplot(aes(x=Variable, y=Value, fill=Variable)) + 
+  geom_boxplot()
+```  
+
+* All the values in the Variables are between 0 and 1.  
+* X10 is already binary.  
+
+
+
+## 1. Make the binary data on a subjective rule.  
+
+I made my rule.  
+
+```{r}
+dummy_var <- transform(data, 
+                       new_X1 = ifelse(X1 >0.5,1,0), 
+                       new_X2 = ifelse(X2 >0.4,1,0), 
+                       new_X3 = ifelse(X3 >0.3,1,0), 
+                       new_X4 = ifelse(X4 >0.5,1,0),
+                       new_X5 = ifelse(X4 >0.1,1,0),
+                       new_X6 = ifelse(X4 >0.5,1,0),
+                       new_X7 = ifelse(X4 >0.5,1,0),
+                       new_X8 = ifelse(X4 >0.5,1,0),
+                       new_X9 = ifelse(X4 >0.3,1,0),
+                       new_X10= ifelse(X10==0,0,1))
+
+X<-dummy_var[,-c(1:10)]
+X<-as.matrix(X)
+
+
+X
+```  
+
+
+## 2. Use the coefficient of similarity to obtain a dissimilarity matrix using a simple matching factor.  
+
+```{r}
+n<-nrow(X); p<-ncol(X)
+
+de<-dist(X, method="euclidean")
+1-de^2/p
+```  
+
+```{r}
+# using package
+
+crs <- 1 - dist(X, method="simple matching")
+crs
+```  
+
+Similarity about Two object using simple matching factor is $C_{rs} = (a+d)/p$.  
+So, when we obtained the similarity about all objects using simple matching factor, it can be seen that the relationship of dissimilarity is caused by Euclidean distance.   
+
+Also, it can be obtained by R function.  
+
+
+### Compare with those two method  
+
+```{r}
+round(sqrt(p*(1-crs)),2)==round(de,2)
+```  
+
+## 3. Characteristic of the Clusters  
+
+```{r}
+Z<-scale(data,scale=T)
+ds <- dist(Z, method="euclidean")
+
+#Sinle Linkage
+single=hclust(ds, method="single")
+plot(single, hang=-1, main="(a) Sinle Linkage")
+rect.hclust(single,k=6)
+
+#Complete Linkage
+complete=hclust(ds, method="complete")
+plot(complete,hang=-1, main="(b) Complete Linkage")
+rect.hclust(complete,k=6)
+
+#Average Linkage
+average=hclust(ds, method="average")
+plot(average, hang=-1, main="(c) Average Linkage")
+rect.hclust(average,k=6)
+
+#Ward Linkage
+ward=hclust(ds, method="ward")
+plot(ward, hang=-1, main="(d) Ward Linkage")
+rect.hclust(ward,k=6)
+```  
+
+* Characteristic of Clusters using Ward linkage.  
+
+ward linkage measures the loss of the information by sum of squared between cluster mean and object.  
+The rightmost cluster, Spec, Corf and RiKr, is a group of cereals with no fat, high sodium and high complex carbohydrates.  
+The second rightmost cluster is a group of cold type, The second cluster from the left is a cereal cluster with a high combination of calories and sugar.  
+
+
+
+## 4. Comparison of Cluster Analysis by K-means and K-medoids  
+
+```{r}
+dindex<-NbClust(Z, distance="euclidean", min.nc = 2, max.nc = 8,
+               method = "kmeans", index = "dindex")
+dindex
+```  
+
+in Dindex plot, the point which decrease sharply corresponds to 6 as the cluster.  
+
+```{r}
+Z<-scale(data,scale=T)
+
+km <- kmeans(Z, 5) # 5 cluster solution
+cluster=data.frame(data,cluster=km$cluster)
+
+aggregate(data, by=list(km$cluster),FUN=mean)
+```  
+
+### How to selecet K?  
+
+```{r}
+k2<-kmeans(data, centers = 2, nstart = 25)
+k3<-kmeans(data, centers = 3, nstart = 25)
+k4<-kmeans(data, centers = 4, nstart = 25)
+k5<-kmeans(data, centers = 5, nstart = 25)
+k6<-kmeans(data, centers = 6, nstart = 25)
+
+# frame.type = "norm"
+p2 <- fviz_cluster(k2, geom = "point",  data = data) + ggtitle("k = 2")
+p3 <- fviz_cluster(k3, geom = "point",  data = data) + ggtitle("k = 3")
+p4 <- fviz_cluster(k4, geom = "point",  data = data) + ggtitle("k = 4")
+p5 <- fviz_cluster(k5, geom = "point",  data = data) + ggtitle("k = 5")
+p6 <- fviz_cluster(k6, geom = "point",  data = data) + ggtitle("k = 6")
+
+grid.arrange(p2, p3, p4, p5, p6, nrow = 3)
+```  
+#### Elbow  
+
+```{r}
+set.seed(123)
+
+# function to compute total within-cluster sum of square 
+wss <- function(k) {
+  kmeans(data, k, nstart = 10 )$tot.withinss
+}
+
+# Compute and plot wss for k = 1 to k = 15
+k.values <- 1:15
+
+# extract wss for 2-15 clusters
+wss_values <- map_dbl(k.values, wss)
+
+plot(k.values, wss_values,
+       type="b", pch = 19, frame = FALSE, 
+       xlab="Number of clusters K",
+       ylab="Total within-clusters sum of squares")
+```  
+
+#### Different method for choosing K  
+
+```{r}
+set.seed(123)
+
+# Elbow method
+fviz_nbclust(data, kmeans, method = "wss") +
+    geom_vline(xintercept = 6, linetype = 2)+
+  labs(subtitle = "Elbow method")
+
+# Silhouette method
+fviz_nbclust(data, kmeans, method = "silhouette")+
+  labs(subtitle = "Silhouette method")
+
+# Gap statistic
+# nboot = 50 to keep the function speedy. 
+# recommended value: nboot= 500 for your analysis.
+# Use verbose = FALSE to hide computing progression.
+
+fviz_nbclust(data, kmeans, nstart = 25,  method = "gap_stat", nboot = 50)+
+  labs(subtitle = "Gap statistic method")
+```  
+
+
+
+
+* Elbow method  
+
+Within group The place where the slope is eased is called the Elbow Point, which determines that K is the appropriate value.  
+
+
+* Silhouette method  
+
+The results show that 2 clusters maximize the average silhouette values with 6 clusters coming in as second optimal number of clusters.  
+
+
+* Gap statistic method  
+
+The gap statistic compares the total intracluster variation for different values of k with their expected values under null reference distribution of the data (i.e. a distribution with no obvious clustering).  
+The estimate of the optimal clusters K will be the value that maximizes Gap statistics  
+
+
+
+totally, I chose K as 6.  
+
+## Dendrogram  
+
+```{r}
+res.hk <-hkmeans(data, 6)
+# Elements returned by hkmeans()
+# names(res.hk)
+
+fviz_dend(res.hk, cex = 0.6, rect = TRUE)
+fviz_cluster(res.hk, frame.type = "norm", frame.level = 0.68)
+```
+
+## Plot for each Group  
+
+```{r}
+group_dat <- cbind(data,res.hk$cluster)
+
+group_dat_long <- group_dat %>% gather(key = k, value = val, -11)
+group_dat_long$`res.hk$cluster` <- as.factor(group_dat_long$`res.hk$cluster`)
+
+group_dat_long %>% ggplot(aes(x=k, y=val, fill = `res.hk$cluster`)) +
+  geom_bar(stat = "identity") + 
+  facet_wrap(~`res.hk$cluster`) +
+  theme_bw() + 
+  coord_flip() +
+  labs(x="Variable", y="Value", title="Pictures for each group", subtitle="") +
+  theme(legend.title=element_blank(),
+        legend.position="right")
+```  
+
+
+## Kmedoids  
+
+```{r}
+kmedoids<-pam(Z,5,metric="euclidean") #5cluster solution
+cluster<-data.frame(data,cluster=kmedoids$cluster)
+
+# Get cluster means 
+aggregate(data, by=list(kmedoids$cluster),FUN=mean)
+```  
+
+
+
+
+## Refer  
+
+### Kmeans  
+
+* (https://uc-r.github.io/kmeans_clustering)  
+
+* (https://www.datanovia.com/en/lessons/determining-the-optimal-number-of-clusters-3-must-know-methods/)  
+
+* (http://www.sthda.com/english/wiki/wiki.php?id_contents=7955)  

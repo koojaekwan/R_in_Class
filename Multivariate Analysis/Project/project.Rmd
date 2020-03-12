@@ -1,0 +1,694 @@
+---
+title: "Russia World Cup Analysis for each Country"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: cosmo
+    orientation: 
+    vertical_layout: fill
+    navbar:
+      - { title: "My github", href: "https://github.com/koojaekwan", align: left }    
+    social: [ "github" ]
+---
+
+<style type="text/css">
+
+.sidebar { overflow: auto; }
+
+.navbar {
+  background-color:#003D79;
+  border-color:white;
+}
+.navbar-brand {
+color:white!important;
+}
+
+.chart-title {  /* chart_title  */
+   font-size: 30px;
+
+</style>
+
+<style type="text/css">
+
+body{ /* Normal  */
+      font-size: 20px;
+  }
+</style>
+
+
+
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(DT)
+
+library(psych)
+library(NbClust)
+library(cluster)    # clustering algorithms
+library(factoextra) # clustering algorithms & visualization
+library(MASS)  # for using isoMDS functions - Nonmetric MDS
+
+library("MVN")
+library(plotly)
+library(corrplot)
+library(gridExtra)
+library(grid)
+```  
+
+```{r include=FALSE}
+setwd("D:\\jae Kwan")
+data<-read.csv("FIFA 2018 Statistics.csv",header=T)
+data<-data[,-c(1,3,21:27)]
+data<-data[,-c(5,6,7,15:18)]
+
+attach(data)
+data<-data %>% group_by(Team) %>% summarise(Goal=mean(Goal.Scored),
+                                            possession=mean(Ball.Possession..),
+                                            attemps=mean(Attempts),
+                                            corners=mean(Corners),
+                                            offsides=mean(Offsides),
+                                            freekicks=mean(Free.Kicks),
+                                            saves=mean(Saves),
+                                            pass_accuracy=mean(Pass.Accuracy..),
+                                            passes=mean(Passes),
+                                            distance_km=mean(Distance.Covered..Kms.))
+
+data<-data.frame(data)
+rownames(data)<-data[,1]
+data<-data[,-1]
+
+#--------------
+new_dat <- data
+new_dat["Country"] <- data %>% rownames()
+
+new_dat_long <- new_dat %>% gather(key=Var, value=val, -11)
+
+
+#-------------PCA
+X<-data; n<-nrow(X); p<-ncol(X)
+rownames<-rownames(X) 
+
+
+R<-cor(X)
+
+eigen.R=eigen(R)
+  round(eigen.R$values, 2)
+V=eigen.R$vectors 
+
+
+gof=eigen.R$values/sum(eigen.R$values)*100 
+
+
+V2=V[,1:2]
+
+
+Z=scale(X, scale=T)
+
+P=Z%*%V2          
+
+
+
+
+
+
+# Biplot based on the Singular Value Decomposition
+svd.Z <- svd(Z) 
+U <- svd.Z$u    
+V <- svd.Z$v 
+D <- diag(svd.Z$d)
+G <- (sqrt(n-1)*U)[,1:2]
+H <- (sqrt(1/(n-1))*V%*%D)[,1:2]
+rownames(G)<-rownames(X)
+rownames(H)<-colnames(X) 
+
+# Godness-of-fit
+eig <- (svd.Z$d)^2 
+per <- eig/sum(eig)*100
+gof <- sum(per[1:2])
+round(per, 2)
+round(gof, 2)
+
+
+```  
+
+Introduction
+=======================================================================
+
+
+
+Column {data-width=300}
+--------------------------------------
+
+### 
+```{r}
+valueBox(value = "Jun 14 ~ July 15",icon = "",caption = "Event period",
+         color = "green")
+```
+
+### 
+```{r}
+valueBox(value = "3,031,768",icon = "",caption = "Average crowd",
+         color = "orange")
+```
+
+### 
+```{r}
+valueBox(value = "France",icon = "",caption = "Champion", color = "coral")
+```
+
+###
+
+![World Cup](https://i.pinimg.com/originals/10/39/08/1039084b27a0f7c218acb91487247ceb.jpg){: width="100%" height="100%"}
+
+
+Column {data-width=500, .tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+### Abstract  
+
+본 분석은 가장 최근 성인축구 국제대회인 2018 러시아 월드컵에서 팀별 플레이 스타일과 이를 결정짓는 요소를 확인하는 것을 목적으로 하며, 경기에서 일어나는 각 지표들에 대하여 분석하였다.  
+
+본 분석은 월드컵 팀별 축구 플레이에 영향을 줄 것으로 예상되는 요인에 대한 정보를 제공하기 위해 월드컵 경기 자료를 바탕으로 다변량 분석기법인 PCA, FA를 통해서 어떤 변수가 축구 스타일에 더 큰 기여를 하는지 살펴보았다. 그리고 CA를 통해 그룹화를 시켜 그룹들의 특성을 알아보았다.  
+
+분석 결과 2010년대 중반까지 유행이었던 높은 점유율과 패스를 바탕으로 한 팀은 이제 줄어드는 추세를 보였고, 실리를 추구하는 팀들이 점진적으로 늘어났음을 대회에서 확인할 수 있었으며, 앞으로 이 플레이 스타일을 대항할만한 새로운 스타일의 축구가 등장할 것으로 예측된다.  
+
+### Introduction  
+
+세계에서 가장 인기 있는 스포츠 1위에 위치한 축구는 5개 대륙 모두에서 가장 많은 인기를 얻고 있으며 월드컵, UEFA 챔피언스리그 등 세계적 규모의 대회를 치르고 있다. FIFA의 보고서에 따르면 2018년 여름에 열린 러시아 월드컵 경기를 TV나 디지털 미디어, 거리 응원을 통해 일부라도 시청한 사람은 35억7천200만 명에 달했다. 전 세계 4세 이상 인구의 51.3%에 해당하는 것으로 세계 인구 절반이상이 축구를 시청하였다.  
+
+리그경기가 아닌 단판승부에서는 약한 팀이 강팀을 잡아내는 장면이 수 없이 발생한다. 감독의 역량과 코칭스태프, 그리고 상대팀과 환경에 따라 팀의 전략과 전술은 완전히 달라진다. 이에 따라, 2018년 월드컵에서 일어난 경기에 대해서 국가별로 어떠한 축구를 구사했는지, 그 전술에 영향을 미치는 요소를 분석함으로써 월드컵 기간 동안 팀별 축구 스타일을 전반적으로 분석해보도록 한다.  
+
+주 데이터는 2018년도 월드컵(러시아 월드컵)에서 일어난 모든 경기에 대한 국가별 경기 데이터이다.   본인은 이 자료를 모든 경기에 대해 국가별 경기 지표를 평균데이터로 전처리하여 사용하였다. 또한, 이 자료는 예측 모델 및 분석 대회 플랫폼인 Kaggle에서 들고 온 것임을 밝힌다.  
+
+### Variable Description  
+
+Var | Description  | Type  
+-|-|-|
+Goal | 국가별 경기당 넣은 골의 평균 | numeric  
+possession | 국가별 경기당 공을 소유한 평균 점유율 | numeric  
+attemps | 국가별 경기당 슈팅을 시도한 평균 횟수 | numeric  
+corners | 국가별 경기당 코너킥을 시도한 평균 횟수 | numeric  
+offsides | 국가별 경기당 오프사이드 반칙의 평균 횟수 | numeric  
+freekicks | 국가별 경기당 프리킥을 얻은 평균 횟수 | numeric  
+saves | 국가별 경기당 슈팅을 방어한 평균 횟수 | numeric  
+pass_accuracy  | 국가별 경기당 평균 패스 정확도 | numeric  
+passes | 국가별 경기당 평균 패스 시도 횟수 | numeric  
+distance_km | 국가별 경기당 선수들이 뛴 평균적인 거리 | numeric  
+
+
+Column {data-width=650} <!-- style="height:70pc;" -->
+-------------------------------
+### DATA  
+
+```{r}
+datatable(round(data,3), options = list(
+  initComplete = JS("
+  function(settings, json) {
+  $(this.api().table().header()).css({
+  'font-size': '12px',
+  });
+  }
+  "),
+  pageLength = 32)) %>% formatStyle(columns = colnames(.$x$data), `font-size` = "13px")
+```  
+
+
+
+EDA {data-icon="fa-signal"}
+=======================================================================
+
+Column {data-width=650 .tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+### Boxplot
+
+```{r}
+p1 <- ggplotly(new_dat_long %>% filter(Var!="passes") %>% ggplot(aes(x=Var, y=val, fill=Var)) + geom_boxplot() + coord_flip())
+
+p2 <- ggplotly(new_dat_long %>% filter(Var=="passes") %>% ggplot(aes(x=Var, y=val)) + geom_boxplot() + coord_flip())
+
+subplot(p1, p2, nrows = 2)     # grid.arrange(p1,p2)  :  not plotly
+```  
+
+
+### Corrplot  
+
+```{r}
+data %>% 
+  select_if(is.numeric) %>%
+  cor(use="complete.obs") %>%
+  corrplot(method = "ellipse", type = "upper", tl.srt = 45, tl.cex = 0.7, 
+           addCoef.col = "black", number.cex = .6)
+```  
+
+### Multivariate Normality  
+
+```{r}
+par(mfrow=c(1,2))
+
+
+result<-mvn(data, mvnTest = "mardia", multivariatePlot =  "qq")
+
+
+n=nrow(data); p=ncol(data)
+S=cov(data); xbar=colMeans(data)
+m=mahalanobis(data, xbar, S); m=sort(m)
+id=seq(1, n); pt=(id-0.5)/n; q=qchisq(pt, p)
+plot(q,m,pch="*",xlab="Quantile",ylab="Ordered Squared Distance")
+abline(0, 1)
+
+
+rq<-cor(cbind(q,m))[1,2]
+```  
+
+
+Columns {data-width=350}
+-----------------------------
+
+### Boxplot description
+
+Boxplot에서 몇 가지의 변수들은 이상치를 가지고 있는데, 경기당 평균적으로 뛴거리(distance_km)가 특별히 많은 팀은 러시아였다. 러시아는 이번 월드컵에서 연장전을 수차례 가지면서도 매우 많이 뛴 팀으로 손꼽힌다. 또한, 러시아에게 져 탈락한 스페인은 패스축구로 유명한 팀이었다. 이번 월드컵에서도 역시나 같은 스타일을 축구를 추구했음을 알 수 있다.
+
+
+### Corrplot description
+
+* 점유율은 패스정확도와 패스갯수와 강한 상관관계를 보인다. 패스를 통한 공 소유 능력이 좋은 팀에게 점유율이 높은것은 당연하다.  
+
+* 점유를 많이 가져가면 자연스럽게 슛 시도기회가 늘어난다. possession과 attemps의 관계도 강한 양의 상관을 보인다. 시도횟수가 높아지면 코너킥의 기회도 늘어난다.  
+
+### QQ-plot description
+
+```{r}
+result$multivariateNormality
+```  
+데이터가 다변량 정규분포를 따르는지 카이제곱그림을 통해서 확인하였다. 모두의 좌표점이 직선성을 크게 벗어나지 않음을 알 수 있다. 더군다나 분위수와 마할라노비스 거리의 상관계수 의 값을 보면 `r rq`으로 거의 1이 되어 카이제곱그림의 직선성이 매우 안정되며 분석에 사용할 데이터는 다변량 정규성을 만족한다고 볼 수 있다.  
+
+또한, 왜도와 첨도를 이용한 다변량 정규성 검정결과를 참고하면 두 가지 모두 귀무가설을 기각할 수 없어 유의수준 0.05에서 다변량 정규분포를 따른다고 할 수 있다. 따라서, 분석에 사용할 데이터는 다변량 정규성을 만족하는 이 데이터에 대해서 MLFA를 사용할 수 있다.  
+
+이상치를 찾기 위해서도 Chi-Square Plot은 활용될 수 있다. 이 데이터에서는 outlier라고 생각되는 점이 딱히 보이지 않는다.  
+
+
+PCA {data-icon="fa-signal" data-orientation=rows}
+=======================================================================
+
+Row {data-height=750}
+------------------------------
+
+### Scree plot 
+
+```{r}
+plot(eigen.R$values, type="b", main="Scree Graph", xlab="Component Number", ylab="Eigenvalue",xlim=c(1,11))
+text(eigen.R$values, labels=round(eigen.R$values,3), cex=0.8, col="blue",pos=4)
+```
+ 
+### Biplot
+
+```{r}
+# PC Biplot
+# lim<-range(pretty(G))
+# biplot(G,H, main="Biplot for soccer Data ",
+#        xlim=lim,ylim=lim,pch=16,xlab="1st PC(43.9%)",ylab="2st PC(16.1%)")
+# abline(v=0,h=0)
+
+PCbiplot <- function(PC, x="PC1", y="PC2", colors=c('black', 'black', 'red', 'red')) {
+    # PC being a prcomp object
+    data <- data.frame(obsnames=row.names(PC$x), PC$x)
+    plot <- ggplot(data, aes_string(x=x, y=y)) + geom_text(alpha=.4, size=3, aes(label=obsnames), color=colors[1])
+    plot <- plot + geom_hline(yintercept = 0) + geom_vline(xintercept = 0)
+    datapc <- data.frame(varnames=rownames(PC$rotation), PC$rotation)
+    mult <- min(
+        (max(data[,y]) - min(data[,y])/(max(datapc[,y])-min(datapc[,y]))),
+        (max(data[,x]) - min(data[,x])/(max(datapc[,x])-min(datapc[,x])))
+        )
+    datapc <- transform(datapc,
+            v1 = .7 * mult * (get(x)),
+            v2 = .7 * mult * (get(y))
+            )
+    plot <- plot + coord_equal() + geom_text(data=datapc, aes(x=v1, y=v2, label=varnames), size = 5, vjust=1, color=colors[3])
+    plot <- plot + geom_segment(data=datapc, aes(x=0, y=0, xend=v1, yend=v2), arrow=arrow(length=unit(0.2,"cm")), alpha=0.75, color=colors[4])
+    plot
+}
+
+fit <- prcomp(data, scale=T)
+PCbiplot(fit, colors=c("black", "black", "red", "yellow"))
+```
+
+
+Row {data-height = 250}
+----------------------------
+### 
+
+* 변수들의 단위가 다르고, 특정변수(passes)의 분산이 매우 커 공분산행렬(S)대신 상관행렬(R)을 이용하였다.  
+
+* 또한, 변수가 매우 많을 때, eigenvalues의 변화를 설명비율로 파악하기가 쉽지 않다. 이 경우, Scree graph에 의해서 시각적으로 주성분의 수를 정하였다. 일반적으로 Scree plot에서 먼저 팔꿈치(Elbow)에 해당하는 곳을 찾으면 이 이후의 eigenvalues의 크기는 상대적으로 매우 작고 비슷해 변화가 없게 보이게 된다. 세 번째 eigenvalues값부터는 변화가 크게 차이가 없다. 설명력이 70%이상은 아니지만 해석의 편리성을 위해, 또 한개 더 포함한다고 해서 큰 차이가 없기 때문에 2개를 선택하였다.  
+
+$\lambda_1$ | $\lambda_2$  | $\lambda_3$ | $\lambda_4$ | $\lambda_5$ | $\lambda_6$ | $\lambda_7$ | $\lambda_8$ | $\lambda_9$ | $\lambda_{10}$ |
+-|-|-|-|-|-|-|-|-|-|
+4.39|1.61|1.12|1.05|0.66|0.52|0.38|0.15|0.09|0.03|  
+
+**Goodness of filt : 약 60%**  
+위의 값들은 상관행렬 R을 spectral Decomposition한 후 얻은 eigenvalue값 들이다.   차례대로 소수점 둘째자리까지 나타내었다. 위에서 결정한 주성분 개수 2개를 고려한다면, 최대 고유 값은 4.39이고 두 번째 큰 고유값은 1.61이다.  
+또한, 제 1주성분과 제 2주성분의 설명력은 고윳값의 설명비율에 해당하며 각각 43.9%, 16.1%이다. 따라서 두 주성분의 설명력은 60%이다.  
+
+
+###
+
+* 첫 번째 PC축을 기준으로 보면 왼편에는 월드컵 기간 동안 경기에서 전반적으로 주도권을 잡아가며 플레이 했던 나라들이 위치해 있고, 오른편에는 전반적으로 조심스럽게 플레이 하거나 움츠렸다 역습위주의 한방 찬스를 엿봤던 팀들이 위치해 있다.  
+두 번째 PC축을 기준으로 보면 위쪽에는 프리킥을 많이 찬 나라들이 위치해있고, 아래쪽에는 프리킥기회가 상대적으로 덜 있었고, 상대적으로 선방과 뛴 거리가 높은 나라들이 위치해 있다. 프리킥기회가 상대적으로 많았다는 것은 곧 반칙을 많이 당했음을 의미한다. 따라서 아래쪽에 위치한 나라들은 위에 위치한 나라보다 반칙을 상대적으로 많이 했음을 유추할 수 있다.  
+
+* 제1축 PC(43.9%)과 제2축 PC(16.1%)에 의해서 행렬도의 전체 설명력은 60%가 된다. 주성분 행렬도에서 변수들의 화살표 방향을 살폈을 때, 패스정확도, 점유율, 패스횟수, 슈팅시도, 코너킥횟수의 변수 사이의 각이 좁아 이 다섯 변수 사이의 상관관계가 높음을 알 수 있다. 반면, 프리킥횟수와 선방횟수의 상관관계는 거의 없음을 알 수 있다.  
+2, 3사분면에 위치한 팀들은 패스플레이가 유기적으로 잘되었으며, 공격찬스를 많이 만들려고 시도했던 팀들의 군집이다. 공격지역에서의 프리킥시도와 공격을 시도하는 상황에서의 오프사이드 반칙을 범한다는 등 대부분 변수들이 공격지표로 활용될 수 있다. 4사분면에 있는 팀들은 뛴 거리도 어느 정도 많았고, 특히 선방횟수가 많았던 팀들이다. 1사분면에 있는 팀 중에 이란과 프랑스를 살펴보자.  
+이란 같은 경우 뛴 거리도 많지 않았다. 이란은 월드컵 경기에서 방어적인 플레이스타일을 보여주다 카운터 어택을 날리는 팀이었다는 것을 잘 보여준다. 그리고 대회 우승국인 프랑스는 상대적으로 강팀이라 불리는 나라들 사이에서도 많이 뛴 편도 아니고 넣은 골도 작다. 이것은 효율적으로 경기운영을 했음을 보여준다.  
+이 데이터들은 경기에 관한 스탯을 바탕으로 플레이스타일을 나타내는 것이지, 경기에서 승리했다는 것과는 무관하다. 왜냐하면 한국, 독일 등은 조별예선에서 탈락했기 때문에 다른 나라와 경기 수에서 차이가 나기 때문이다.
+
+
+FA {data-icon="fa-signal" data-orientation=columns}
+=======================================================================
+
+```{r include=FALSE}
+pcfa<-principal(Z, nfactors=2, rotate="varimax") 
+L<-pcfa$loadings                     
+Psi<-pcfa$uniquenesses                   
+Rm<-R-(L%*%t(L)+diag(Psi))
+gof<-pcfa$values/ncol(data)*100  
+fpc=pcfa$scores
+```  
+
+```{r include=FALSE}
+mlfa<-factanal(Z,factors = 2, rotation="varimax", score="regression")
+Lm=mlfa$loading;  Psi=mlfa$uniquenesses
+Rm = R-(Lm%*%t(Lm) + diag(Psi))  
+fml=mlfa$scores ; round(fml, 3)
+```
+
+
+
+Column {data-width=650 .tabset .tabset-fade}
+------------------------------
+
+### Scree plot  
+
+```{r}
+fa.parallel(Z, fm = 'minres', fa = 'fa')
+```  
+
+### Biplot for PCFA with varimax
+
+```{r}
+biplot.psych(pcfa, labels = rownames(data), main ="Biplot for PCFA")
+abline(h=0, v=0)
+```  
+
+### Biplot for MLFA with varimax
+
+```{r}
+biplot.psych(mlfa, labels = rownames(data), main="Biplot for MLFA")
+abline(h=0, v=0)
+```  
+
+### Pairs(MLFA, PCFA)
+
+```{r}
+# Plot of Factor Scores : 
+par(pty="s")
+par(mfrow=c(1,2))
+
+plot(fml[,1], fpc[,1],main="(a) Factor Scores : ml f1 and pc f1",  xlab="ml f1", ylab="pc f1")
+text(fml[,1], fpc[,1], labels=rownames(fml), cex=0.7, col="blue", pos=1)
+
+abline(v=0, h=0)
+
+plot(fml[,2], fpc[,2],main="(b) Factor Scores : ml f2 and pc f2",  xlab="ml f2", ylab="pc f2")
+text(fml[,2], fpc[,2], labels=rownames(fml), cex=0.7, col="blue", pos=1)
+
+abline(v=0, h=0)
+```  
+
+
+Column {data-width=350}
+------------------------------
+
+### Loading  
+
+
+* PCFA  
+```{r}
+round(L[,1:2],3)  
+```  
+
+* MLFA
+```{r}
+round(Lm[,1:2],3)
+```
+.
+
+
+### Interpretation  
+
+
+* GOF  
+PCFA : `r round(sum(pcfa$values[1:2])/p*100,2)` %  
+MLFA : `r round(sum((Lm[,1])^2)/p *100+sum((Lm[,2])^2)/p *100,2)` % 
+
+* PCFA  
+회전 후 인자적재 값들을 보면, `공통인자 f1`은 패스 수, 패스정확도, 점유율 및 슈팅시도 수의 인자라고 해석할 수 있다. `공통인자 f2`는 프리킥횟수와 선방횟수, 뛴 거리의 대비를 나타내는 인자로 해석 가능하다.  
+
+* MLFA  
+회전 후 인자적재 값들을 보면, `공통인자 f1`은 점유율과 패스의 수, 패스정확도의 인자라고 해석할 수 있다. `공통인자 f2`는 코너킥 수와 슈팅시도 수를 나타내는 인자로 해석 가능하다.  
+축 f1이 점유율과 패스의 수, 패스 정확도와 관련된 인자로 `스페인, 독일, 아르헨티나, 벨기에, 잉글랜드` 등 이 속했다. 이 국가들은 월드컵기간 동안 실제로 패스를 바탕으로 한 점유율 축구를 구사한 팀들이다. 이와 반대로 `이란, 한국, 러시아` 등은 점유율, 패스의 수, 패스 정확도가 낮은 국가인데 실제로 선 수비 후 역습전략을 사용한 국가이다. 하지만 꼭 이런 수치들이 높아야 경기에서 승리할 수 있는 것은 아니다. 왜냐하면 그에 대응하는 전술은 항상 존재하고, 실제로 스페인은 16강에서 러시아에게, 독일은 조별예선에서 탈락했기 때문에 단지 수치적인 존재로만 플레이 스타일을 확인하였다.  
+축 f2는 코너킥 수와 슈팅시도 수를 나타내는 인자로 슈팅시도 수가 높은 나라들이 당연히 코너킥 수도 높게 가져가는 모습을 보였다. 반면 공격기회를 많이 잡지 못한 나라일수록 코너킥 수도 현저하게 떨어지는 모습을 보였다.  
+
+* Pairs(MLFA, PCFA)  
+`PCFA`에서 `f1`은 패스 수, 패스정확도, 점유율 및 슈팅시도 수의 인자이며, `MLFA`에서 `f1`은 패스 수, 패스정확도, 점유율의 인자로 두 가지 기법에서 `f1`은 비슷한 공통인자로 해석되었다.  
+반면에 `PCFA`에서 `f2`는 프리킥횟수와 선방횟수, 뛴 거리의 대비를 나타내는 인자이지만, `MLFA`에서 `f2`는 코너킥 수와 슈팅시도 수를 나타내는 인자로 공통인자 해석에 약간의 차이를 보인다.  
+PCFA와 MLFA에서 회전 후의 인자점수그림을 각 인자별로 그린 그림으로 살펴본 결과 각 개체들이 원점에서 45°직선을 형성했으므로 두 추정법은 대략 같은 결과를 주며 인자점수는 유사하다고 여겨진다.  
+결론적으로, 이 데이터에서는 두 가지 기법의 결과가 비슷한 결과로 해석이 되고 있다. 또한, 전반적으로 인자점수그림에서 개체들이 거의 타원형을 형성하므로 자료의 다변량 정규성이 만족됨을 시사한다.  
+
+
+CA {data-icon="fa-signal" data-orientation=columns}
+=======================================================================
+
+Column {data-width=400 .tabset .tabset-fade}
+--------------------
+
+### Elbow method
+
+```{r}
+fviz_nbclust(Z, kmeans, method = c("wss"))+
+  labs(subtitle = "Elbow method")
+```  
+
+* The location of a bend (knee) in the plot is generally considered as an indicator of the appropriate number of clusters.  
+
+* Elbow method: 2 clusters solution suggested  
+
+### Silhouette method  
+
+```{r}
+fviz_nbclust(Z, kmeans, method = "silhouette")+
+  labs(subtitle = "Silhouette method")
+```  
+
+* The location of the maximum is considered as the appropriate number of clusters.  
+* Silhouette method: 2 clusters solution suggested  
+
+### Gap statistic method
+
+```{r}
+set.seed(123)
+
+fviz_nbclust(Z, kmeans, nstart = 25,  method = "gap_stat", nboot = 50)+
+  labs(subtitle = "Gap statistic method")
+```  
+
+* The estimate of the optimal clusters will be value that maximize the gap statistic  
+
+* Gap statistic method: 2 clusters solution suggested (1 cluster don`t have meaning)  
+
+
+Column {data-width=600 .tabset .tabset-fade}
+------------------
+
+### Dendrogram (method : kmeans)
+
+```{r}
+res.hk <-hkmeans(data, 2)
+# Elements returned by hkmeans()
+# names(res.hk)
+
+fviz_dend(res.hk, cex = 0.4, rect = TRUE, lwd = 0.5, ggtheme = theme_classic())
+```
+
+### Boxplot by group  
+
+```{r}
+data_group <- cbind(new_dat,data.frame(group = res.hk$cluster))
+data_group_long <- data_group %>% gather(key=Variable, value=Value, -c(11:12))
+data_group_long$group <- as.factor(data_group_long$group)
+
+
+data_group_long %>% filter(Variable!="passes") %>% 
+  ggplot(aes(x = Variable, y = Value, fill = group)) +
+  geom_boxplot() + ggtitle("Comparison by Group") +
+  theme(axis.text.x =element_text(size=6))
+```
+
+### Boxplot by group 2
+
+```{r}
+p1<-
+data_group_long %>% filter(Variable=="passes" & group ==1) %>% 
+  ggplot(aes(x = Variable, y = Value, fill = "group1")) +
+  geom_boxplot(color="darkred", fill="skyblue") +
+  theme(axis.text.x =element_text(size=6))
+
+p2<-
+data_group_long %>% filter(Variable=="passes" & group ==2) %>% 
+  ggplot(aes(x = Variable, y = Value)) +
+  geom_boxplot(color="darkred") + 
+  ggtitle("Group 1 / Group2") +
+  theme(axis.text.x =element_text(size=6))
+
+
+subplot(p1, p2, nrows = 1)
+``` 
+
+
+MDS {data-icon="fa-signal" data-orientation=columns}
+=======================================================================
+
+```{r include=FALSE}
+X<-scale(as.matrix(data))
+X
+
+m <-as.matrix(dist(X, method="euclidean"))
+d<-round(m, 3)
+head(d)  # dissimilary matrix
+
+
+con<-cmdscale(d, k=2, eig=T)
+con
+
+round(con$eig,3)
+con$GOF 
+
+
+x<-con$points[,1]; y<-con$points[,2]
+lim<-c(-max(abs(con$points)), max(abs(con$points)))
+
+plot(x,y, xlab="Dimension 1", ylab="Dimension 2", xlim=lim, ylim=lim)
+text(x,y+0.6, rownames(d), cex=0.8, pos=1)
+abline(v=0, h=0)
+```
+
+Column {data-width=650 .tabset .tabset-fade}
+-------------------
+
+### Metric MDS  
+
+```{r}
+x<-con$points[,1]; y<-con$points[,2]
+lim<-c(-max(abs(con$points)), max(abs(con$points)))
+
+plot(x,y, xlab="Dimension 1", ylab="Dimension 2", xlim=lim, ylim=lim)
+text(x,y+0.6, rownames(d), cex=0.8, pos=1)
+abline(v=0, h=0)
+```  
+
+
+
+### Non-Metric MDS  
+
+```{r include=FALSE}
+#non-metric mds
+
+con<-isoMDS(d, k=2)
+con
+
+x<-con$points[,1]; y<-con$points[,2]
+lim1<-c(-max(abs(x)), max(abs(x))); lim2<-c(-max(abs(y)), max(abs(y)))
+
+plot(x,y, xlab="Dim1", ylab="Dim2", xlim=lim1, ylim=lim2)
+text(x,y,rownames(d), cex=0.8, pos=2)
+abline(v=0, h=0)
+
+
+
+sh <- Shepard(d[lower.tri(d)], con$points)
+
+plot(sh$x, sh$yf, pch = ".", xlab = "Dissimilarity", ylab = "Distance", 
+     xlim = range(sh$x), ylim = range(sh$x))
+lines(sh$x, sh$yf, type = "S")
+
+
+plot(sh$y, sh$yf, pch=".", xlab="FitDissimilarity", ylab="Distance", 
+     xlim=range(sh$y), ylim=range(sh$y))
+lines(sh$y, sh$yf, type="p")
+```  
+
+### 셰퍼드 & 상
+
+```{r}
+par(mfrow=c(1,2))
+
+plot(sh$x, sh$yf, pch = ".", xlab = "Dissimilarity", ylab = "Distance", 
+     xlim = range(sh$x), ylim = range(sh$x))
+lines(sh$x, sh$yf, type = "S")
+
+
+plot(sh$y, sh$yf, pch=".", xlab="FitDissimilarity", ylab="Distance", 
+     xlim=range(sh$y), ylim=range(sh$y))
+lines(sh$y, sh$yf, type="p")
+```
+
+
+
+
+```{r}
+plot(x,y, xlab="Dim1", ylab="Dim2", xlim=lim1, ylim=lim2)
+text(x,y,rownames(d), cex=0.8, pos=2)
+abline(v=0, h=0)
+```  
+
+
+
+Column {data-width=350}
+---------------------------
+
+### MDS  
+
+```{r}
+X<-scale(as.matrix(data))
+m <-as.matrix(dist(X, method="euclidean"))
+d<-round(m, 3)
+con<-cmdscale(d, k=2, eig=T)
+
+con$GOF
+```  
+
+* metric MDS의 결과로 형상좌표, 적합도 60%가 요약되어 있다.  
+
+2차원 MDS 그림의 GOF는 약 60%이다.  
+비슷한 위치에 있는 국가라면 이번 월드컵에서의 플레이스타일이 비슷했다고 볼 수 있을 것이다.  
+
+### Non-Metric MDS
+
+```{r}
+con<-isoMDS(d, k=2)
+
+con$stress
+```  
+
+* 크루스칼의 판별기준에 의해 스트레스 값 15% 정도는 적합도가 보통정도에 해당한다.  
+
+스트레스 | 0.0 | 0.025 | 0.05 | 0.10 | 0.20
+-|-|-|-|-|-|
+적합도 | (perfect) | (excellent) | (good) | (fair) | (poor)  
+
+metric MDS plot은 non-metric MDS plot과 거의 일치하며 러시아 월드컵에서의 비슷한 플레이스타일을 가진 국가들끼리 잘 묶여있다.  
+
+### 셰퍼드 & 상 그림  
+
+* 세퍼드 그림은 수직축에 순위상과 수평축에 실제 비유사성에 대한 산점도로 non-metric MDS모형에서 가정한 함수 f의 단조성이 만족됨을 보이고 있다.  
+
+* 상그림은 수직축에 순위상과 수평축에 2차원의 형상좌표로부터 얻어지는 비유사성에 대한 산점도로 원점을 지나는 직선상에 잘 놓여 있어 non-metric MDS가 잘 적합 되었다고 여겨진다.  

@@ -33,7 +33,7 @@ i will update for multivariate analysis(Ⅰ) contents soon.
 - DCA(Discriminant Classification Analysis)  
 - MS(Multidimensional Scaling)  
 
-### Project  
+### (3) Project  
 - This is a comprehensive report  
 
 **Please read the html file**  

@@ -38,8 +38,9 @@ i will update for multivariate analysis(Ⅰ) contents soon.
 
 **Please read the html file**  
 1. First enter the html file in my folder  
-2. `Ctrl + S` : you can save the file in your local computer.  
-3. Read the html report! Good luck!  
+2. Click the `View raw`  
+3. `Ctrl + S` : you can save the file in your local computer.  
+4. Read the html report! Good luck!  
 
 
 ## 3. Regression Analysis(Ⅱ)

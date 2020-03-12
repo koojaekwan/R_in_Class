@@ -33,4 +33,13 @@ i will update for multivariate analysis(Ⅰ) contents soon.
 - DCA(Discriminant Classification Analysis)  
 - MS(Multidimensional Scaling)  
 
+### Project  
+- This is a comprehensive report  
+
+**Please read the html file**  
+1. First enter the html file in my folder  
+2. `Ctrl + S` : you can save the file in your local computer.  
+3. Read the html report! Good luck!  
+
+
 ## 3. Regression Analysis(Ⅱ)

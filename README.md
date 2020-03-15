@@ -36,11 +36,7 @@ i will update for multivariate analysis(Ⅰ) contents soon.
 ### (3) Project  
 - This is a comprehensive report  
 
-**Please read the html file**  
-1. First enter the html file in my folder  
-2. Click the `View raw`  
-3. `Ctrl + S` : you can save the file in your local computer.  
-4. Read the html report! Good luck!  
+[View the Project!](https://koojaekwan.github.io/multivariate_proj/project.html)  
 
 
 ## 3. Regression Analysis(Ⅱ)

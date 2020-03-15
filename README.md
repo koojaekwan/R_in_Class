@@ -3,7 +3,7 @@
 This contents were that i studied in class.  
 i will update for multivariate analysis(Ⅰ) contents soon.
 
-## 1. Computerized_Statistics  
+## 1. Computerized_Statistics  {.tabset .tabset-fade}
 ### Build models through statistical simulations.  
 
 1. chapter1  

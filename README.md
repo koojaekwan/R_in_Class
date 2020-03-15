@@ -1,9 +1,9 @@
-# R_in_Class
+# R_in_Class {.tabset .tabset-fade}
 
 This contents were that i studied in class.  
 i will update for multivariate analysis(Ⅰ) contents soon.
 
-## 1. Computerized_Statistics  {.tabset .tabset-fade}
+## 1. Computerized_Statistics  
 ### Build models through statistical simulations.  
 
 1. chapter1  

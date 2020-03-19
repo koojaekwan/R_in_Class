@@ -1,0 +1,285 @@
+---
+title: "Classification Algorithm - Processing"
+author: Jae Kwan Koo
+output:
+  html_document:
+    fig_height: 6
+    fig_width: 10
+    highlight: textmate
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+  word_document: default
+  github_document:
+    toc: yes
+    toc_depth: 4
+---  
+
+<style type="text/css">
+
+body{ /* Normal  */
+      font-size: 17px;
+  }
+td {  /* Table  */
+  font-size: 17px;
+}
+h1.title {
+  font-size: 40px;
+  color: black;
+}
+h1 { /* Header 1 */
+  font-size: 33px;
+  color: black;
+}
+h2 { /* Header 2 */
+    font-size: 28px;
+  color: black;
+}
+h3 { /* Header 3 */
+  font-size: 24px;
+  font-family: "";
+  color: black;
+}
+code.r{ /* Code block */
+    font-size: 14px;
+}
+pre { /* Code block - determines code spacing between lines */
+    font-size: 14px;
+}
+</style>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Library  
+
+```{r message=FALSE, warning=FALSE}
+# manupulate
+library(tidyverse)
+library(data.table)
+
+# modeling
+library(caret)
+```  
+
+
+## DATA - mdrr  
+
+```{r}
+data(mdrr) 
+
+table(mdrrDescr$nR11) %>% data.frame
+```  
+
+mdrr 데이터는 다중약물내성 자료(528개 관측치, 342개 변수)이다.  
+`data(mdrr)`을 통해 mdrrDescr데이터를 import하였고, 이 데이터로부터 nR11변수의 값들을 frequency별로 확인하였다.  
+
+
+### 0에 가까운 분산  
+
+변수를 선택하는 기법 중 가장 단순한 방법은 변숫값의 분산을 보는 것이다.  
+예를 들어, 데이터 1,000개가 있는데 이 중 990개에서 변수 A의 값이 0, 10개에서 변수 A의 값이 1이라고 하자. 그러면 변수 A는 서로 다른 관찰을 구분하는 데 별 소용이 없다. 따라서 데이터 모델링에서도 그리 유용하지 않다.  
+
+이런 변수는 분산이 0에 가까우며, caret 패키지에서는 `nearZeroVar()` 함수를 사용해 이런 변수들을 쉽게 제거할 수 있게 해주고 있다.  
+
+
+* 정리!  
+    * 일부 상황에서 데이터 생성 메커니즘은 한 개의 값만을 취하는(영-분산)예측변수를 생성할 수 있다.  
+    * 많은 모형(트리 기반 모델 제외)에서, 영-분산 예측변수는 모형을 망가뜨리거나 불안정한 적합의 원인  
+    
+    * 마찬가지로 예측변수는 매우 낮은 빈도로 발생하는 몇 개의 값만을 취할 수도 있다.  
+    
+    * 영근처-분산 예측변수는 모형화 이전에 식별되고 제거되어야 한다.  
+    
+    
+    
+* 영-분산 예측변수 또는 영근처-분산 예측변수를 식별하기 위한 두 가지 측도  
+
+    * `빈도 비율(frequency ratio)` : (가장 많이 발생한 빈도) / (두번째 많은 발생 빈도)  
+    
+    * `유일 값들(unique values)` : (유일한 값들의 수) / (전체 표본 수)  
+    
+
+`빈도비율`은 정상적인 예측변수에서는 1에 가까운 값을 가지고, 매우 불균형적인 데이터에 대해서는 매우 큰 값을 가진다. 상식적으로 생각해보면 간단히 이해할 수 있다. 적절히 섞여진 데이터에서는 일순위 빈도갯수와 차순위(이순위)빈도 갯수가 큰 차이를 보이지 않을 것이므로 ratio는 1에 가깝게 나타날 테지만 skewed 된 데이터 분포에서는 분모는 매우 크지만 분자는 상대적으로 매우 작아 ratio는 매우 큰 값이 나타날 것이다.  
+우리가 설정한 임계값보다 크면 영-분산에 가깝다고 간주할 수 있다.  
+
+
+`유일값들`은 데이터가 세분화가 증가함에 따라 0에 가까워진다. 우리가 설정한 임계값보다 낮으면 예측변수가 영-분산에 가깝다고 간주할 수 있다.  
+
+    
+```{r}
+nzv_df <- nearZeroVar(mdrrDescr, saveMetrics = T)
+
+head(nzv_df)
+```  
+
+
+`nearZeroVar()`로 할당된 nzv_df의 rownames는 mdrrDescr의 변수이름들을 나열한 것이다.  
+**saveMetrics = T**로 두게 되면 dataframe의 형태를 얻을 수 있는데, 위 표에서 nzv 컬럼은 Near Zero Variance를 뜻하므로, nzv 컬럼에 TRUE로 표시된 변수들을 제거하면 된다.  
+
+
+* How?  
+
+    * nearZeroVar() 함수의 호출시saveMetrics=T 옵션을 사용하면 각 예측값에 대한 빈도비율(freqRatio)과 유일 값들의 비율(percentUnique)을 얻을 수 있으며, 동시에 각 변수가 영-분산 또는 영-근처 분산을 가지는지를 알려준다.  
+
+    * 디폴트로, 표본에서 유일 값의 비율이10% 이하이고 빈도비율이 19(95/5)보다 큰 예측변수는 영-근처 분산으로 분류. 디폴트 값들은 **uniqueCut=** 과 **freqCut=** 옵션을 통해 변경될 수 있다.  
+    
+
+```{r}
+nzv_index <- nearZeroVar(mdrrDescr)   # nearZeroVar(mdrrDescr, saveMetrics = F),  F is default
+nzv_index
+
+filteredDescr <- mdrrDescr[, -nzv_index]
+dim(filteredDescr)
+```  
+
+`nearZeroVar()` 호출 시 **saveMetrics**를 지정하지 않으면 분산이 0에 가까운 변수에 해당하는 컬럼 번호를 곧바로 출력해준다. 따라서 이를 사용해 손쉽게 분산이 0에 가까운 컬럼들을 제거할 수 있다.  
+
+* filterredDescr는 분산이 0에 가까운 변수들을 기존 mdrrDescr으로부터 제거한 dataset이다.  
+
+
+### 상관된 예측변수의 식별 : 중복변수 제거  
+
+※상관계수  
+
+변수 간 높은 상관 계수가 존재한다는 것은 두 변수가 같이 커지거나 작아지는 경향이 있다는 의미다.   선형 모델, 신경망 등의 기계 학습 모델은 상관 계수가 큰 예측 변수들이 있을 경우 성능이 떨어지거나 모델이 불안정해진다. 또, 기계 학습이란 결국 모델의 파라미터를 측정하는 작업인데, 상관 계수가 높은 변수가 여럿 존재하면 파라미터 수가 불필요하게 증가하여 차원 저주에 빠질 우려가 있다.  
+상관관계가 높은 변수들이 있다면 이들을 주성분 분석과 같은 방법을 사용해 서로 독립된 차원으로 변환하거나, 상관 계수가 큰 변수들을 제거해 버릴 수 있다.  
+caret의 `findCorrelation()`의 동작 방식은 다음과 같다.  
+
+1. 상관 계수 행렬을 입력으로 받아 **상관 계수가 cutoff를 넘는 변수 쌍 A, B**를 찾는다.   
+2. A와 B 중 둘을 제외한 다른 변수와의 상관 계수가 큰 변수 하나를 삭제한다.  
+3. 1 ~ 2를 계속 반복하면서 상관 계수가 높은 변수들을 제거해나간다.  
+
+코드화된 과정은 아래와 같다.  
+
+```{r echo=FALSE}
+descrCor <- cor(filteredDescr)
+(highCorr <- sum(abs(descrCor[upper.tri(descrCor)]) > .999))
+```  
+
+먼저 그냥 상관계수의 절댓값이 0.999로 매우 높은 상관관계가 있는 컬럼 갯수를 확인했다.  
+그냥 이렇구나 하고 아래 두 과정을 비교해보자.  
+
+#### Before processing  
+
+```{r}
+descrCor <- cor(filteredDescr)
+
+summary(descrCor[upper.tri(descrCor)])
+```  
+
+일단 전처리를 하기 전의 상관관계들의 summary이다.  
+
+#### After Processing  
+
+```{r}
+highlyCorDescr <- findCorrelation(descrCor, cutoff = 0.75)
+
+highlyCorDescr
+```  
+
+0.75기준으로 위의 n번째 컬림의 상관계수가 높은 것으로 나타났다.  
+
+
+```{r}
+filteredDescr <- filteredDescr[, -highlyCorDescr]
+descrCor2 <- cor(filteredDescr)
+
+summary(descrCor2[upper.tri(descrCor2)])
+```  
+
+이 높은 컬럼을 기존 데이터에서 삭제한 뒤 다시 상관계수들의 summary를 통해 분포를 확인해본다.  
+
+#### Compare Before one with After one  
+
+```{r}
+before <- data.frame(cor = descrCor[upper.tri(descrCor)])
+after <- data.frame(cor = descrCor2[upper.tri(descrCor2)])
+
+before["index"] <- "before"; after["index"] <- "after"
+
+compare_dat <- rbind(before, after)
+
+
+compare_dat %>% ggplot(aes(x = cor, y = index)) +
+  geom_boxplot() + ggtitle("before and after comparison")
+```  
+
+after processing에서 절댓값0.75이후의 양쪽의 상관계수들은 cut-off된 것을 확인할 수 있다.  
+
+
+
+
+### 예측변수의 변환  
+
+#### 중심화와 척도화  
+
+**`preProcess()`**  
+* 중심화(centrering)와 척도화(scaling)을 포함하여 예측변수에 대해 많은 연산을 제공  
+* 각 연산에 필요한 매개 변수를 추정  
+* 특정데이터셋(예를들어, 훈련용자료)으로부터 요구하는 것을 추정한 다음, 이 값을 재계산 하지않고 임의의 데이터세트에 이들변환을 적용  
+* 실제로 데이터를 전처리하지 않음  
+* `train()`함수를 호출 할 때, 인터페이스가 될 수도 있음  
+* `method = "ranges"`옵션은 0과 1사이의 값으로 데이터를 변환  
+
+
+**`predict.preProcess()`**  
+* 특정 데이터 집합에 이를 적용하는데 사용  
+* 데이터셋(훈련용)과 다른 데이터셋(검증용)을 전처리하는데 사용  
+
+
+```{r}
+set.seed(200)
+inTrain <- sample(seq(along = mdrrClass), length(mdrrClass)/2)
+
+training <- filteredDescr[inTrain, ]
+test <- filteredDescr[-inTrain, ]
+
+trainMDRR <- mdrrClass[inTrain]
+testMDRR <- mdrrClass[-inTrain]
+```  
+
+mdrrClass데이터는 Active와 Inactive의 2 클래스를 가지는 factor들과 대응된다.(data를 import할 때, mdrrClass와 mdrrDescr데이터는 같이 import됨)  
+
+이 클래스들의 index를 나열하고 절반에 해당하는 갯수를 `sample`함수를 통해 추출할 계획이다.  
+그 다음 이때까지 전처리한 데이터셋에 training과 test로 할당하고, 또 다른 train과 test는 전처리하기 전의 데이터셋에 할당하였다. 아마 나중에 전처리 전후의 성능을 비교를 하기 위함인 것 같다.  
+
+
+```{r}
+# 중심화, 척도화
+preProcValues <- preProcess(training, method = c("center","scale"))
+
+trainTransformed <- predict(preProcValues, training)
+testTransformed <- predict(preProcValues, test)
+
+preProcValues
+```  
+
+
+#### 박스-콕스 변환  
+
+* preprocess()함수에서 method = "BoxCox"옵션은 예측변수에 대한 박스-콕스 변환의 차수를 추정(데이터가 0보다 큰 경우에 한함)  
+* NA값은 변환될 수 없는 예측인자에 해당  
+* 데이터가 0보다 커야함  
+* 두 가지 유사한 변형으로, Yeo-Johnson과 Manly(1976)의 지수변환이 preProcess()함수에 사용될 수 있음  
+
+```{r}
+# Box-Cox transformation
+preProcValues2 <- preProcess(training, method = "BoxCox")
+
+trainBC <- predict(preProcValues2, training)
+testBC <- predict(preProcValues2, test)
+
+preProcValues2
+```  
+
+
+## Refer  
+
+* 0에 가까운 분산, 상관계수  
+<https://medium.com/@hslee09/r-%EB%B6%84%EB%A5%98-%EC%95%8C%EA%B3%A0%EB%A6%AC%EC%A6%98-%EC%A0%84%EC%B2%98%EB%A6%AC-d22feb413b17>  
+
+* Pre-Processing using `caret` package  
+<https://topepo.github.io/caret/pre-processing.html>

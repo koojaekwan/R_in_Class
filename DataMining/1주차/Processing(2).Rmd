@@ -1,0 +1,186 @@
+---
+title: "Classification Algorithm - Processing"
+author: "Jae Kwan Koo"
+output:
+  github_document:
+    toc: yes
+    toc_depth: 4
+  html_document:
+    fig_height: 6
+    fig_width: 10
+    highlight: textmate
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+  word_document: default
+---  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Library  
+
+```{r warning=FALSE, message=FALSE}
+# Dataset
+library(MASS)
+library(mlbench)
+
+# Manupulate
+library(data.table)
+library(tidyverse)
+
+# Modeling
+library(caret)
+
+# Visualization
+library(DT)
+library(formattable)
+library(kableExtra)
+```  
+
+## mlbench 패키지의 콩(Soybean) 질병 데이터에 nearZeroVar를 적용 및 설명  
+
+```{r}
+data("Soybean")
+```  
+
+
+변수를 선택하는 기법 중 가장 단순한 방법은 변숫값의 분산을 보는 것이다.  
+예를 들어, 데이터 1,000개가 있는데 이 중 990개에서 변수 A의 값이 0, 10개에서 변수 A의 값이 1이라고 하자. 그러면 변수 A는 서로 다른 관찰을 구분하는 데 별 소용이 없다. 따라서 데이터 모델링에서도 그리 유용하지 않다.  
+
+이런 변수는 분산이 0에 가까우며, caret 패키지에서는 nearZeroVar() 함수를 사용해 이런 변수들을 쉽게 제거할 수 있게 해주고 있다.  
+
+```{r}
+Soybean_df <- nearZeroVar(Soybean, saveMetrics = T)
+head(Soybean_df)
+```  
+
+nearZeroVar()로 할당된 Soybean_df의 rownames는 mdrrDescr의 변수이름들을 나열한 것이다.  
+saveMetrics = T로 두게 되면 dataframe의 형태를 얻을 수 있는데, 위 표에서 nzv 컬럼은 Near Zero Variance를 뜻하므로, nzv 컬럼에 TRUE로 표시된 변수들을 제거하면 된다.  
+
+
+
+
+```{r}
+Soybean_index <- nearZeroVar(Soybean)   # nearZeroVar(mdrrDescr, saveMetrics = F),  F is default
+Soybean_index
+```  
+
+
+
+```{r}
+filter_bean <- Soybean[, -Soybean_index]
+dim(filter_bean)
+```
+
+nearZeroVar() 호출 시 saveMetrics를 지정하지 않으면 분산이 0에 가까운 변수에 해당하는 컬럼 번호를 곧바로 출력해준다. 따라서 이를 사용해 손쉽게 분산이 0에 가까운 컬럼들을 제거할 수 있다.  
+
+filter_bean은 영에 가까운 분산 또는 영분산에 해당하는 columns을 지운 object이다.  
+
+
+## mlbench 패키지의 Vehicle 데이터에 findCorrelation을 적용 및 설명 (단, cutoff=0.9)  
+
+```{r}
+data(Vehicle)
+```  
+
+4가지 종류의 자동차에 대한 속성을 나열한 데이터인 mlbench의 Vehicle에 대해 findCorrelation()을 적용해보자.  
+아래 코드에서 분류에 해당하는 Class 컬럼을 제거하고 진행하였다.  
+
+```{r}
+findCorrelation(Vehicle %>% select(-Class) %>% cor, cutoff = 0.9) 
+# default cutoff = 0.9
+```  
+
+### mechanism of cutoff  
+
+상관 계수 행렬을 입력으로 받아 상관 계수가 cutoff를 넘는 변수 쌍 A, B를 찾는다.  
+A와 B 중 둘을 제외한 다른 변수와의 상관 계수가 큰 변수 하나를 삭제한다.  
+1 ~ 2를 계속 반복하면서 상관 계수가 높은 변수들을 제거해나간다.  
+
+실행 결과 3, 8, 11, 7, 9, 2번째 컬럼의 상관 계수가 높은 것으로 나타났다.  
+상관계수 값들이 어떤지 직접 살펴보면 대부분 0.9을 넘는 상당히 큰 값임을 알 수 있다.  
+
+
+### Correlation coefficient    
+
+```{r}
+temp <- Vehicle %>% select(-Class) %>% cor %>% round(3) %>% data.frame
+
+Var<-names(temp)
+
+temp %>% mutate_at(Var,
+                   function(x) ifelse(x > 0.9,
+                                      cell_spec(x, color = "black", bold = T,background = "red"),
+                                      cell_spec(x, color = "green", italic = T))                 ) %>%
+
+  select(everything()) %>%
+  kable(escape = F) %>%
+  kable_styling("hover", full_width = F)
+```
+
+
+## MASS 패키지의 Boston 데이터에 preProcess의 각 “center”, "scale", "range" 세 방법을 적용 및 설명  
+
+```{r}
+data(Boston)
+
+dim(Boston)
+```  
+
+```{r}
+center_scale_df <- preProcess(Boston, method = c("center","scale"))
+range_df <- preProcess(Boston, method = c("range"))
+
+
+center_scale_df
+range_df
+```  
+
+method 인수를 통해 전처리 방법을 설정한다.  
+가장 기본적인 데이터 전처리는 스케일링(scaling)과 센터링(centering)이다.  
+`스케일링`은 데이터 집합의 전체 표준 편차를 1로 만드는 것이고, `센터링`은 데이터 집합의 평균을 0으로 하는 것이다.  
+
+* center: subtract mean from values.  
+* scale: divide values by standard deviation.  
+* range: normalize values.  
+
+```{r}
+df <- predict(center_scale_df, Boston)
+head(df)
+
+
+df2 <- predict(range_df, Boston)
+head(df2)
+```
+
+
+Boston데이터는 각 옵션에 의해 데이터가 변환되었다.  
+
+df는 각 변수의 평균을 빼고 표준편차로 나눠준 데이터셋이고, df2는 값들을 정규화 시킨 데이터셋이다.  
+
+* df는 각 변수내에서 평균을 빼고 각 변수별 표준편차로 나눠준 것이다.  
+예컨대 `apply(Boston, 2, function(x) (x-mean(x)) / sd(x))`과 같은 값을 가진다.  
+즉 **Standardize**작업은 scale과 center을 동시에 적용하여 할 수 있다는 말이다.  
+
+* df2는 Normalize작업이다. 데이터값들은 0에서 1까지의 범위에서 선택되어질 수 있고 이 작업은 **normalization**이라고 부른다.  
+
+
+
+
+## Refer  
+
+* preProcess in r  
+
+<https://machinelearningmastery.com/pre-process-your-dataset-in-r/>  
+
+* Formattable  
+
+<https://haozhu233.github.io/kableExtra/awesome_table_in_html.html#grouped_columns__rows>  
+
+* dplyr  
+
+<http://ds.sumeun.org/?p=840>  
+
+

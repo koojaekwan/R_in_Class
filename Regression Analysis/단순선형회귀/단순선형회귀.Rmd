@@ -1,0 +1,209 @@
+---
+title: "Simple linear regression"
+author: "Jae Kwan Koo"
+output:
+  html_document:
+    fig_height: 6
+    fig_width: 10
+    highlight: textmate
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+  word_document: default
+  github_document:
+    toc: yes
+    toc_depth: 4
+---  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T, fig.align = "center", message=F, warning=F, fig.height = 5, cache=F, dpi = 300, dev = "png")
+```  
+
+## Library  
+
+```{r message=FALSE, warning=FALSE}
+library(data.table)
+library(tidyverse)
+
+library(plotly)
+library(gridExtra)
+```  
+
+
+```{r echo=FALSE}
+setwd("D:\\Jae Kwan\\4학년1학기\\선형모형응용 이상진")
+```  
+
+# Week 1  
+
+```{r}
+DATA_PRACTICE <- fread("DATA_PRACTICE.csv", na.strings = "9999", col.names = c("SEASON","PROTEIN"))
+
+DATA_PRACTICE[SEASON==3, .(mean=mean(PROTEIN, na.rm = T))]
+```  
+
+# Week 2  
+
+```{r}
+quadratic <- fread("quadratic.txt", col.names = c("x", "y"))
+```  
+
+```{r}
+MVN::mvn(quadratic)
+```  
+
+quadratic data satisfy the normality.  
+
+
+```{r}
+model <- lm(y~x, data=quadratic)
+
+# Calculate predictions
+quadratic$predictions <- predict(model)
+
+# Calculate residuals
+quadratic$residuals <- quadratic$y-quadratic$predictions
+
+
+summary(model)
+confint(model)
+```  
+
+that might be good because median of residuals is near 0.  
+
+## Plot  
+
+### Residuals & Prediction, linear model 
+
+```{r}
+p1<-
+ggplot(quadratic, aes(x = predictions, y = residuals)) + 
+  geom_pointrange(aes(ymin = 0, ymax = residuals)) + 
+  geom_hline(yintercept = 0, linetype = 2) + 
+  ggtitle("residuals vs. linear model prediction")
+
+p2<-
+ggplot(quadratic, aes(x = predictions, y = y)) + 
+  geom_point() + 
+  geom_abline()
+
+grid.arrange(p1, p2, nrow=1)
+```  
+
+### Interactive plot with plotly  
+
+```{r}
+fig<-ggplot(quadratic, aes(x = x, y = y)) +
+  geom_point() +
+  stat_smooth(method = "lm", lwd=1, col="red", se = T) + 
+  theme_bw()
+
+ggplotly(fig)
+```  
+
+### Plot for linear model with Based function  
+
+```{r}
+par(mfrow=c(2,2))
+
+plot(model)
+```  
+
+in Residuals Vs Fitted plot, this can be a problem. If you have more data, your simple linear model will not be able to generalize well. In the previous picture, notice that there is a pattern (like a curve on the residuals). This is not random at all.  
+
+## Evaluating Regression Models  
+
+
+### RMSE  
+
+```{r}
+(rmse <- sqrt(mean(quadratic$residuals^2)))
+```  
+
+
+## Detect Influential Points  
+
+
+```{r}
+plot(cooks.distance(model), pch = 16, col = "blue")
+```
+
+Notice that there is a point that does not follow the pattern, and it might be affecting the model. Here you can make decisions on this point, in general, there are three reasons why a point is so influential:  
+
+* Someone made a recording error  
+* Someone made a fundamental mistake collecting the observation  
+* The data point is perfectly valid, in which case the model cannot account for the behavior.  
+
+
+If the case is 1 or 19, 20, then you can remove the point (or correct it). maybe you can try on a non-linear model rather than a linear model like linear regression.  
+
+Beware that an influential point can be a valid point, be sure to check the data and its source before deleting it. It’s common to see on statistics books this quote: “Sometimes we throw out perfectly good data when we should be throwing out questionable models.”  
+
+## Regression over origin  
+
+```{r}
+model_origin <- lm(y~x+0,data = quadratic)
+
+summary(model_origin)
+```  
+
+You can set the Regression over orign if you add the 0 (`+0`) behind the formula.  
+`-1` also possible.  
+
+## Comparison  
+
+```{r}
+lm_eqn <- function(df){
+    m <- lm(y ~ x, df);
+    eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
+         list(a = format(unname(coef(m)[1]), digits = 2),
+              b = format(unname(coef(m)[2]), digits = 2),
+             r2 = format(summary(m)$r.squared, digits = 3)))
+    as.character(as.expression(eq));
+}
+
+lm_origin <- function(df){
+    m <- lm(y ~ x+0, df);
+    eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2, 
+         list(a = format(unname(coef(m)[1]), digits = 2),
+              b = format(unname(coef(m)[2]), digits = 2),
+             r2 = format(summary(m)$r.squared, digits = 3)))
+    as.character(as.expression(eq));
+}
+
+
+
+fig<-ggplot(quadratic, aes(x = x+0, y = y)) +
+  geom_point() +
+  stat_smooth(method="lm", formula=y~x+0, 
+              colour="red", se=F,  fullrange=T) +
+  stat_smooth(method="lm", formula=y~x,
+              colour="blue", se=F, fullrange = T) +
+  
+  xlim(-1,35) + 
+  ylim(-0.1,2.5)
+  # ggtitle("Comparison of two lines")
+
+fig1 <- fig + 
+  geom_text(x = 8.0, y = 2.0, label = lm_eqn(quadratic), 
+            parse = T, colour ="blue") +
+  geom_text(x = 8.0, y = 1.5, label = lm_origin(quadratic), 
+            parse = T, colour ="red") + 
+  labs(title="Comparison of two lines",
+        x ="X", y = "Y")
+
+
+fig1
+```  
+
+
+
+
+  
+
+
+## Refer  
+
+[선형회귀](https://www.datacamp.com/community/tutorials/linear-regression-R#coefficients)  
+
+[원점을 지나는 회귀 in ggplot](https://stackoverflow.com/questions/26705554/extend-geom-smooth-in-a-single-direction)  

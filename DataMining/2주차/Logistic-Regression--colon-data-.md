@@ -623,15 +623,20 @@ Comparision
 Refer
 -----
 
-\[moonBook package\]<https://rpubs.com/cardiomoon/46636>
+-   moonBook package
 
-\[CI\]<https://stats.stackexchange.com/questions/304833/how-to-calculate-odds-ratio-and-95-confidence-interval-for-logistic-regression>
+<https://rpubs.com/cardiomoon/46636>
 
-\[CI\]<http://sphweb.bumc.bu.edu/otlt/MPH-Modules/EP/EP713_RandomError/EP713_RandomError4.html>
+-   CI
 
-\[Logistic\]<https://rstudio-pubs-static.s3.amazonaws.com/41074_62aa52bdc9ff48a2ba3fb0f468e19118.html>
+<https://stats.stackexchange.com/questions/304833/how-to-calculate-odds-ratio-and-95-confidence-interval-for-logistic-regression>
 
-\[Logistic\]<https://bioinformaticsandme.tistory.com/296>
+<http://sphweb.bumc.bu.edu/otlt/MPH-Modules/EP/EP713_RandomError/EP713_RandomError4.html>
+
+-   Logistic
+    <https://rstudio-pubs-static.s3.amazonaws.com/41074_62aa52bdc9ff48a2ba3fb0f468e19118.html>
+
+<https://bioinformaticsandme.tistory.com/296>
 
 ### Book
 

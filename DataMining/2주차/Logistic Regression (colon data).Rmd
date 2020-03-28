@@ -1,0 +1,386 @@
+---
+title: "Classification Algorithm - Logistic regression"
+author: "Jae Kwan Koo"
+output:
+  html_document:
+    fig_height: 6
+    fig_width: 10
+    highlight: textmate
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+    code_folding: show
+  word_document: default
+  github_document:
+    toc: yes
+    toc_depth: 4
+---  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Library  
+
+```{r message=FALSE, warning=FALSE}
+# Data 
+library(survival)
+
+# Manupulate
+library(tidyverse)
+library(data.table)
+
+# Analysis
+library(caret)
+library(pROC) # ROC curve
+library(moonBook) # using HRplot
+```  
+
+# Analysis  
+
+## DATA : colon  
+
+```{r}
+data(colon)
+
+dplyr::glimpse(colon) # extension version of str()
+```  
+
+### Description  
+
+survival 패키지의 colon 자료는 대장암 관련 자료이다.  
+
+<br>
+
+* **반응변수**  
+
+|변수|설명|
+|:---:|:---:|
+|`status`|`1` - 대장암 재발 or 사망, `0` - 재발하지 않고 생존|  
+
+<br>  
+<br>
+
+* **설명변수**  
+
+|변수|설명|
+|:---:|:---:|
+|`sex`|`0` - 여성, `1` - 남성|
+|`age`|나이|
+|`perfor`|장의 천공 여부(`0` : 아니오, `1` : 예)|
+|`adhere`|인접장기와의 유착여부(`0` : 아니오, `1` : 예)|
+|`nodes`|암세포가 확인된 림프절의 수|
+|`differ`|암세포의 조직학적 분화정도 (`1` : well, `2` : moderate, `3` : poor)|
+|`extent`|암세포가 침습한 깊이 (`1` : submucosa, `2` : muscle, `3` : serosa, `4` : 인접장기)|
+|`surg`|수술 후 재등록까지 걸린 시간 (`0` : short, `1` : long)|  
+
+
+```{r}
+colon <- colon[complete.cases(colon),]
+
+sapply(colon, function(x) sum(is.na(x)))
+sapply(colon, function(x) sum(is.null(x)))
+```  
+
+NA가 있는 행은 제거를 하고 진행하자.(대체보단 제거를 선택함)  
+
+
+```{r}
+col_need <- c("status", "sex", "age", "perfor", "adhere", "nodes", 
+              "differ", "extent", "surg")
+
+data <- colon[, col_need]
+
+
+data["status"] <- lapply(data["status"], factor)  # 다변수일때 편하다.
+
+str(data)
+```  
+
+위의 설명변수와 반응변수를 이용하여 로지스틱 회귀모형을 적합시켜보자.  
+
+반응변수가 두 개의 범주 중 하나에 속하는 자료가 있을 때, 로지스틱 회귀는 반응변수 Y를 직접 모델링하지 않고 Y가 특정 범주에 속하는 확률을 모델링한다.  
+
+선형회귀모델을 사용한다면 직선을 0또는 1로 코딩할 이진 반응변수에 적합할 때는 항상 예측값이 일부 X 값에 대해서는 p(X)<0이고, 일부 다른 경우 p(X)>1이 될 수 있다.(X의 범위가 제한되지 않는다면)  
+
+이 문제를 해결하기 위해서는 모든 X값에 대해 0과 1사이의 값을 제공하는 함수를 사용하여 p(X)를 모델링해야 한다. 많은 함수가 이 조건을 만족하는데, 로지스틱 회귀에서는 아래와 같은 로지스틱 함수를 사용한다.  
+
+$$
+p(X) = {e^{\beta_0+...+\beta_pX} \over 1 + e^{\beta_0+...+\beta_pX}}
+$$  
+
+로지스틱함수는 항상 `S-형태`를 가지므로 X값에 상관없이 합리적인 예측값을 얻을 것이다.  
+
+$$
+odds = {p(X) \over 1-p(X)}
+$$  
+
+`odds`는 항상 0과 무한대사이의 값을 가진다.  
+
+$$
+log({p(X) \over 1-p(X)})
+$$  
+
+양변에 로그를 취한 `log odds`는 **`logit`**이라고도 한다.  
+선형회귀모델에서 $\beta_1$은 X의 한 유닛 증가와 연관된 Y의 평균 변화를 제공한다.  
+반대로, 로지스틱 회귀모델에서는 X의 한 유닛 증가는 log odds를 $\beta_1$만큼 변화시킨다.  
+~~이것은 odds에 $e^{\beta_1}$ 을 곱하는 것과 같다.~~  
+
+
+
+## Modeling  
+
+```{r}
+set.seed(300)
+index <- createDataPartition(data$status, p=0.7, list=F)
+
+data_train <- data[index,]
+data_test <- data[-index,]
+```  
+
+데이터 분리를 위해 caret패키지는 또한 유용하게 사용될 수 있다.  
+
+
+```{r}
+model <- glm(status~., data = data_train, family = "binomial")
+
+summary(model)
+```  
+
+<br>  
+
+model에서 `sex`, `age`, `perfor`, `differ`은 p-value가 높은 변수로, 유의하지 않은 것으로 나타났다. 유의하지 않은 것들은 제외하고 해석해보자.  
+
+
+* 인접장기와의 유착여부가 있는 경우 반응변수 status의 odds가
+`r exp(coef(model)["adhere"])`만큼 증가한다.
+
+* nodes(암세포가 확인된 림프절의 수)가 증가할수록 반응변수 status의 odds가
+`r exp(coef(model)["nodes"])`만큼 증가한다.
+
+* extent(암세포가 침습한 깊이 (1 : submucosa, 2 : muscle, 3 : serosa, 4 : 인접장기))가 증가할수록 반응변수 status의 odds가 `r exp(coef(model)["extent"])`만큼 증가한다.
+
+* surg(수술 후 재등록까지 걸린 시간 (0 : short, 1 : long))가 증가할수록 반응변수 status의 odds가 `r exp(coef(model)["surg"])`만큼 증가한다.  
+
+
+~~예컨대, nodes의 한 유닛(단위) 증가로 인해 이진 반응변수status 의 log odds는
+`r coef(model)["nodes"]` 만큼 증가한다.~~  
+
+
+## cdplot  
+
+```{r out.height=800, out.width=900}
+temp_col <- names(data_train)[2:9] # select not dependent var
+
+par(mfrow=c(2,2))
+
+for(i in 1:8){
+  
+  assign(paste0("p",i), 
+         cdplot(status~data_train[,temp_col[i]], data=data_train, 
+                               xlab=temp_col[i]))
+}
+```  
+
+`cdplot()`함수는 설명변수의 변화에 따른 범주형변수의 조건부 분포를 보여준다.  
+
+
+## Odds ratio  
+
+
+```{r}
+odds <- function(model, digit = 2){
+  temp <- confint(model)
+  temp <- data.frame(exp(coef(model)), exp(temp)) %>% round(digit)
+  
+  result <- cbind(temp, summary(model)$coefficient[,4] %>% round(3))
+  names(result) <- c("odds", "2.5%", "97.5%", "p-value")
+  
+  return(result)
+}
+
+
+odds(model)
+```  
+
+사용자 정의 함수로 형성한 테이블이다. 이 테이블을 가지고 HRplot을 이용하여 CI를 보이자.  
+
+<br>  
+
+
+```{r}
+exp(cbind("Odds ratio" = coef(model), confint.default(model, level = 0.95)))
+```  
+
+`confint.default` 함수를 이용하여 구해볼 수도 있겠다.  
+이 함수는 asymptotic normality를 바탕으로 한다.  
+
+<br>  
+
+```{r}
+exp(summary(model)$coefficients["sex",1] + 
+     qnorm(c(0.025,0.5,0.975)) * summary(model)$coefficients["sex",2])
+```  
+
+물론 함수를 쓰지않는다면 ~~노가다~~ 뛰어야 한다. 위는 성별 변수에 대한 예시이다.  
+
+
+## Confidence Interval  
+
+```{r}
+odds_CI <- odds(model)[2:nrow(odds(model)), ]
+
+
+HRplot(odds_CI, type = 1, show.CI = T)
+```  
+
+odds의 점추정 값과 95%신뢰구간을 도시해둔 그림이다.  
+
+신뢰구간에 대한 해석은 다음과 같다.  
+95% 신뢰구간의 의미는 편향과 교락이 없다고 가정했을 시, 같은 모집단이 샘플링된다면 상대도수적으로 모집단의 참값은 구간안에 대략 95%정도 들어온다는 의미이다.  
+결론적으로 각 변수의 odds의 95%신뢰구간은 상대도수적으로 각 변수의 신뢰구간 안에 95%정도는 true odds가 있을 것이라는 의미이다.  
+
+
+
+
+## Confusion Matrix  
+
+```{r}
+pred <- predict(model, newdata = data_test, type="response")
+pred_type <- ifelse(pred>=0.5, 1, 0)
+
+
+confusionMatrix(factor(pred_type), factor(data_test$status))
+```  
+
+임계값을 0.5로 설정하였다.  
+caret의 `confusionMatrix`함수를 이용해 분류의 정확도를 알아보자. train, test를 따로 나누는 과정은 물론 생략되었다.  
+성능은 `r mean(data_test$status==pred_type)`    
+
+## ROC  
+
+```{r}
+# Create a ROC curve
+ROC_curve <- roc(data_test$status, pred)
+
+# Plot the ROC curve
+plot(ROC_curve, col = "blue")
+
+# Calculate the area under the curve (AUC)
+auc(ROC_curve)
+```  
+
+현재 모형에 대한 auc는 `r auc(ROC_curve)`이다. 전진, 후진, 단계선택법을 이용한 모형과의 auc를 나중에 비교해보자.  
+
+### 임계값에 따른 성능  
+
+```{r}
+pred <- predict(model, newdata = data_test, type="response")
+
+for(i in seq(0.1,0.9,0.1)){
+  pred_type_i <- ifelse(pred>=i, 1, 0)
+  
+  paste0("임계값 : ", i ,", 성능 : ", mean(data_test$status==pred_type_i)) %>%
+    print
+}
+```  
+
+그냥 확인해봤다.  
+
+
+
+
+
+
+## Variable selection  
+
+```{r}
+anova(model, test="Chisq")
+```  
+
+`anova()` 함수는 모형의 적합(변수가 추가되는)단계별로 이탈도의 감소량과 유의성 검정 결과를 제시  
+결과적으로 adhere, nodes, extent, surg 변가 추가면서 생겨나는 deviance의 감소량이 통계적으로 유의한 것임을 나타내었다.  
+
+```{r}
+step(model, direction = "backward", trace=F)
+
+step(model, direction = "forward", trace=F) 
+
+step(model, direction = "both", trace=F) # stepwise
+
+model
+```  
+
+
+
+
+**trace**옵션은 변수 선택하는 과정을 Console에 출력할지 여부이다.  
+
+stepwise, backward가 좋아보인다. AIC가 다른 모델에 비해 낮기 때문이다.  
+
+### Confusion Matrix - stepwise model
+
+
+```{r}
+model_stepwise <- step(model, direction = "both", trace=F)
+
+
+
+pred_step <- predict(model_stepwise, 
+                     newdata = data_test, type="response")
+pred_type_step <- ifelse(pred_step>=0.5, 1, 0)
+
+
+confusionMatrix(factor(pred_type_step), factor(data_test$status))
+```  
+
+임계값을 0.5로 설정하였다.  
+caret의 `confusionMatrix`함수를 이용해 분류의 정확도를 알아보자. train, test를 따로 나누는 과정은 물론 생략하고 진행하는 중이다.  
+성능은 `r mean(data_test$status==pred_type_step)`  
+
+### ROC - stepwise model  
+
+```{r}
+ROC_step <- roc(data_test$status, pred_step)
+
+plot(ROC_step, col = "blue")
+
+auc(ROC_step)
+```  
+
+<br>  
+<br>  
+
+## Comparision  
+
+||model|model_stepwise|
+|:---:|:---:|:---:|
+|Accuracy|`r mean(data_test$status==pred_type)`|`r mean(data_test$status==pred_type_step)`|
+|AUC|`r auc(ROC_curve)`|`r auc(ROC_step)`|  
+
+
+표를 만들어 성능을 비교해보니 stepwise를 적용한 모형이 더 낫다.  
+
+
+
+
+
+
+
+## Refer  
+
+[moonBook package]<https://rpubs.com/cardiomoon/46636>  
+
+[CI]<https://stats.stackexchange.com/questions/304833/how-to-calculate-odds-ratio-and-95-confidence-interval-for-logistic-regression>  
+
+[CI]<http://sphweb.bumc.bu.edu/otlt/MPH-Modules/EP/EP713_RandomError/EP713_RandomError4.html>  
+
+[Logistic]<https://rstudio-pubs-static.s3.amazonaws.com/41074_62aa52bdc9ff48a2ba3fb0f468e19118.html>  
+
+[Logistic]<https://bioinformaticsandme.tistory.com/296>  
+
+
+### Book  
+
+ISLR(Introduction to Statistical Learning with R)  

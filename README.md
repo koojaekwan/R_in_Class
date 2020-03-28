@@ -17,8 +17,8 @@
   
 2 chapter2  
 
-    - Generate the random nunber  
-    - Chi square test & Kolmogorov-Smirnov test  
+  - Generate the random nunber  
+  - Chi square test & Kolmogorov-Smirnov test  
     
 3 chapter3  
 
@@ -30,7 +30,7 @@
       
 4 chapter4  
 
-    - Newton method  
+  - Newton method  
     
 5 chapter5  
 

@@ -634,7 +634,8 @@ Refer
 <http://sphweb.bumc.bu.edu/otlt/MPH-Modules/EP/EP713_RandomError/EP713_RandomError4.html>
 
 -   Logistic
-    <https://rstudio-pubs-static.s3.amazonaws.com/41074_62aa52bdc9ff48a2ba3fb0f468e19118.html>
+
+<https://rstudio-pubs-static.s3.amazonaws.com/41074_62aa52bdc9ff48a2ba3fb0f468e19118.html>
 
 <https://bioinformaticsandme.tistory.com/296>
 

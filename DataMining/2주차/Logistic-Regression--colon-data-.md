@@ -379,7 +379,7 @@ confusionMatrix(factor(pred_type), factor(data_test$status))
     ## 
 
 임계값을 0.5로 설정하였다.
-caret의 `confusionMatrix`함수를 이용해 분류의 정확도를 알아보자. train, test를 따로 나누는 과정은 물론 생략되었다.
+caret의 `confusionMatrix`함수를 이용해 분류의 정확도를 알아보자.
 성능은 0.6184211
 
 ROC

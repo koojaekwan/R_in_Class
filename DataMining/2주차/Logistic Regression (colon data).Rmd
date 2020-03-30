@@ -167,6 +167,28 @@ model에서 `sex`, `age`, `perfor`, `differ`은 p-value가 높은 변수로, 유
 ~~예컨대, nodes의 한 유닛(단위) 증가로 인해 이진 반응변수status 의 log odds는
 `r coef(model)["nodes"]` 만큼 증가한다.~~  
 
+## Anova  
+
+```{r}
+anova(model, test="Chisq")
+```  
+
+절편항만 포함하는 영(Null)모형에서 각 아래의 변수를 한 개씩 추가했을때, 발생하는 이탈도의 감소량을 제시하며, p값을 확인했을 때, 유의한 변수는 `adhere`, `nodes`, `extent`, `surg`이다.  
+나머지 변수들은 추가되면 생겨나 이탈도의 감소량 통계적으로 유의하지 않은것으로 확인되었다.  
+
+
+```{r}
+ifelse(1724.3-1579.5>=qchisq(0.05,df=1243-1235, lower.tail=FALSE),"모형이 적절(귀무가설 기각)","모형이 적절하지 못함(귀무가설 기각x)")
+```  
+
+
+데비언스의 차로 $H_0 : \beta_q = ...= \beta_{p-1} =0$ 에 대해 검정할 수 있다.  
+귀무가설하에서는 모형은 q개의 모수로 구성되고, 검정통계량은 현재모형에서의 데비언스(D1)와 귀무가설 하에서의 데비언스(D0)와의 차로 이루어진다.  
+현재모형 하에서 D1은 근사적으로 $\chi^2(n-p)$를 따르고, 귀무가설 하에서의 축소된 모형의 D0는 근사적으로 $\chi^2(n-q)$를 따르므로, 검정통계량 $\Delta D$는 근사적으로 $\chi^2(p-q)$분포를 따른다는 것이 알려져 있다.  
+따라서 $\Delta D$ > $\chi^2(p-q)$이면 귀무가설을 기각한다.  
+여기서의 모형은 귀무가설을 기각하고 모형이 적절하다고 할 수 있다.  
+
+
 
 ## cdplot  
 
@@ -239,7 +261,7 @@ odds의 점추정 값과 95%신뢰구간을 도시해둔 그림이다.
 
 신뢰구간에 대한 해석은 다음과 같다.  
 95% 신뢰구간의 의미는 편향과 교락이 없다고 가정했을 시, 같은 모집단이 샘플링된다면 상대도수적으로 모집단의 참값은 구간안에 대략 95%정도 들어온다는 의미이다.  
-결론적으로 각 변수의 odds의 95%신뢰구간은 상대도수적으로 각 변수의 신뢰구간 안에 95%정도는 true odds가 있을 것이라는 의미이다.  
+결론적으로 각 변수의 odds의 95%신뢰구간은 상대도수적으로 각 변수의 신뢰구간 안에 95%정도는 true odds가 있다는 것.  
 
 
 
@@ -296,38 +318,35 @@ for(i in seq(0.1,0.9,0.1)){
 ## Variable selection  
 
 ```{r}
-anova(model, test="Chisq")
+backward_model <- step(model, direction = "backward", trace=F)
+
+forward_model <- step(model, direction = "forward", trace=F) 
+
+stepwise_model <- step(model, direction = "both", trace=F) # stepwise
 ```  
-
-`anova()` 함수는 모형의 적합(변수가 추가되는)단계별로 이탈도의 감소량과 유의성 검정 결과를 제시  
-결과적으로 adhere, nodes, extent, surg 변가 추가면서 생겨나는 deviance의 감소량이 통계적으로 유의한 것임을 나타내었다.  
-
-```{r}
-step(model, direction = "backward", trace=F)
-
-step(model, direction = "forward", trace=F) 
-
-step(model, direction = "both", trace=F) # stepwise
-
-model
-```  
-
 
 
 
 **trace**옵션은 변수 선택하는 과정을 Console에 출력할지 여부이다.  
 
+
+
+```{r}
+summary(backward_model)
+summary(forward_model)
+summary(stepwise_model)
+```  
+
 stepwise, backward가 좋아보인다. AIC가 다른 모델에 비해 낮기 때문이다.  
+마찬가지로 deviance를 이용해 검정하게 되면 stepwise, backward는 적절한 모형이라고 할 것이다.  
+
+
 
 ### Confusion Matrix - stepwise model
 
 
 ```{r}
-model_stepwise <- step(model, direction = "both", trace=F)
-
-
-
-pred_step <- predict(model_stepwise, 
+pred_step <- predict(stepwise_model, 
                      newdata = data_test, type="response")
 pred_type_step <- ifelse(pred_step>=0.5, 1, 0)
 
@@ -349,8 +368,58 @@ plot(ROC_step, col = "blue")
 auc(ROC_step)
 ```  
 
+### Confusion Matrix - backward model  
+
+```{r}
+pred_back <- predict(backward_model, 
+                     newdata = data_test, type="response")
+pred_type_back <- ifelse(pred_back>=0.5, 1, 0)
+
+
+confusionMatrix(factor(pred_type_back), factor(data_test$status))
+```  
+
+### ROC - backward model  
+
+```{r}
+ROC_back <- roc(data_test$status, pred_back)
+
+plot(ROC_back, col = "blue")
+
+auc(ROC_back)
+```  
+
+stepwise와 backward 모형은 선택된 변수가 같아 같은 모형이므로 AUC와 accuracy가 같은것은 당연하다.  
+
+
+### Confusion Matrix - forward model  
+
+```{r}
+pred_forward <- predict(forward_model, 
+                     newdata = data_test, type="response")
+pred_type_for <- ifelse(pred_forward>=0.5, 1, 0)
+
+
+confusionMatrix(factor(pred_type_for), factor(data_test$status))
+```  
+
+### ROC - forward model  
+
+```{r}
+ROC_for <- roc(data_test$status, pred_forward)
+
+plot(ROC_for, col = "blue")
+
+auc(ROC_for)
+```  
+
+forward model은 기존 변수선택전의 모형과 같으므로 결과또한 같다.  
+
+
 <br>  
 <br>  
+
+
 
 ## Comparision  
 
@@ -360,7 +429,8 @@ auc(ROC_step)
 |AUC|`r auc(ROC_curve)`|`r auc(ROC_step)`|  
 
 
-표를 만들어 성능을 비교해보니 stepwise를 적용한 모형이 더 낫다.  
+표를 만들어 정리해보았다.  
+stepwise를 적용한 모형이 더 낫다.  
 
 
 
@@ -387,6 +457,6 @@ auc(ROC_step)
 <https://bioinformaticsandme.tistory.com/296>  
 
 
-### Book  
+* 참조 Book  
 
 ISLR(Introduction to Statistical Learning with R)  

@@ -7,6 +7,7 @@ Jae Kwan Koo
     -   [DATA : colon](#data-colon)
         -   [Description](#description)
     -   [Modeling](#modeling)
+    -   [Anova](#anova)
     -   [cdplot](#cdplot)
     -   [Odds ratio](#odds-ratio)
     -   [Confidence Interval](#confidence-interval)
@@ -16,9 +17,12 @@ Jae Kwan Koo
     -   [Variable selection](#variable-selection)
         -   [Confusion Matrix - stepwise model](#confusion-matrix---stepwise-model)
         -   [ROC - stepwise model](#roc---stepwise-model)
+        -   [Confusion Matrix - backward model](#confusion-matrix---backward-model)
+        -   [ROC - backward model](#roc---backward-model)
+        -   [Confusion Matrix - forward model](#confusion-matrix---forward-model)
+        -   [ROC - forward model](#roc---forward-model)
     -   [Comparision](#comparision)
     -   [Refer](#refer)
-        -   [Book](#book)
 
 Library
 -------
@@ -233,6 +237,50 @@ model에서 `sex`, `age`, `perfor`, `differ`은 p-value가 높은 변수로, 유
 
 ~~예컨대, nodes의 한 유닛(단위) 증가로 인해 이진 반응변수status 의 log odds는 0.1911896 만큼 증가한다.~~
 
+Anova
+-----
+
+``` r
+anova(model, test="Chisq")
+```
+
+    ## Analysis of Deviance Table
+    ## 
+    ## Model: binomial, link: logit
+    ## 
+    ## Response: status
+    ## 
+    ## Terms added sequentially (first to last)
+    ## 
+    ## 
+    ##        Df Deviance Resid. Df Resid. Dev  Pr(>Chi)    
+    ## NULL                    1243     1724.3              
+    ## sex     1    1.536      1242     1722.8  0.215269    
+    ## age     1    2.253      1241     1720.6  0.133359    
+    ## perfor  1    2.521      1240     1718.0  0.112335    
+    ## adhere  1    7.809      1239     1710.2  0.005198 ** 
+    ## nodes   1  107.517      1238     1602.7 < 2.2e-16 ***
+    ## differ  1    0.571      1237     1602.1  0.449886    
+    ## extent  1   16.320      1236     1585.8 5.349e-05 ***
+    ## surg    1    6.336      1235     1579.5  0.011831 *  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+절편항만 포함하는 영(Null)모형에서 각 아래의 변수를 한 개씩 추가했을때, 발생하는 이탈도의 감소량을 제시하며, p값을 확인했을 때, 유의한 변수는 `adhere`, `nodes`, `extent`, `surg`이다.
+나머지 변수들은 추가되면 생겨나 이탈도의 감소량 통계적으로 유의하지 않은것으로 확인되었다.
+
+``` r
+ifelse(1724.3-1579.5>=qchisq(0.05,df=1243-1235, lower.tail=FALSE),"모형이 적절(귀무가설 기각)","모형이 적절하지 못함(귀무가설 기각x)")
+```
+
+    ## [1] "모형이 적절(귀무가설 기각)"
+
+데비언스의 차로 *H*<sub>0</sub> : *β*<sub>*q*</sub> = ... = *β*<sub>*p* − 1</sub> = 0 에 대해 검정할 수 있다.
+귀무가설하에서는 모형은 q개의 모수로 구성되고, 검정통계량은 현재모형에서의 데비언스(D1)와 귀무가설 하에서의 데비언스(D0)와의 차로 이루어진다.
+현재모형 하에서 D1은 근사적으로 *χ*<sup>2</sup>(*n* − *p*)를 따르고, 귀무가설 하에서의 축소된 모형의 D0는 근사적으로 *χ*<sup>2</sup>(*n* − *q*)를 따르므로, 검정통계량 *Δ**D*는 근사적으로 *χ*<sup>2</sup>(*p* − *q*)분포를 따른다는 것이 알려져 있다.
+따라서 *Δ**D* &gt; *χ*<sup>2</sup>(*p* − *q*)이면 귀무가설을 기각한다.
+여기서의 모형은 귀무가설을 기각하고 모형이 적절하다고 할 수 있다.
+
 cdplot
 ------
 
@@ -249,7 +297,7 @@ for(i in 1:8){
 }
 ```
 
-<img src="Logistic-Regression--colon-data-_files/figure-markdown_github/unnamed-chunk-7-1.png" width="900" height="800" /><img src="Logistic-Regression--colon-data-_files/figure-markdown_github/unnamed-chunk-7-2.png" width="900" height="800" />
+<img src="Logistic-Regression--colon-data-_files/figure-markdown_github/unnamed-chunk-9-1.png" width="900" height="800" /><img src="Logistic-Regression--colon-data-_files/figure-markdown_github/unnamed-chunk-9-2.png" width="900" height="800" />
 
 `cdplot()`함수는 설명변수의 변화에 따른 범주형변수의 조건부 분포를 보여준다.
 
@@ -331,13 +379,13 @@ odds_CI <- odds(model)[2:nrow(odds(model)), ]
 HRplot(odds_CI, type = 1, show.CI = T)
 ```
 
-![](Logistic-Regression--colon-data-_files/figure-markdown_github/unnamed-chunk-11-1.png)
+![](Logistic-Regression--colon-data-_files/figure-markdown_github/unnamed-chunk-13-1.png)
 
 odds의 점추정 값과 95%신뢰구간을 도시해둔 그림이다.
 
 신뢰구간에 대한 해석은 다음과 같다.
 95% 신뢰구간의 의미는 편향과 교락이 없다고 가정했을 시, 같은 모집단이 샘플링된다면 상대도수적으로 모집단의 참값은 구간안에 대략 95%정도 들어온다는 의미이다.
-결론적으로 각 변수의 odds의 95%신뢰구간은 상대도수적으로 각 변수의 신뢰구간 안에 95%정도는 true odds가 있을 것이라는 의미이다.
+결론적으로 각 변수의 odds의 95%신뢰구간은 상대도수적으로 각 변수의 신뢰구간 안에 95%정도는 true odds가 있다는 것.
 
 Confusion Matrix
 ----------------
@@ -399,7 +447,7 @@ ROC_curve <- roc(data_test$status, pred)
 plot(ROC_curve, col = "blue")
 ```
 
-![](Logistic-Regression--colon-data-_files/figure-markdown_github/unnamed-chunk-13-1.png)
+![](Logistic-Regression--colon-data-_files/figure-markdown_github/unnamed-chunk-15-1.png)
 
 ``` r
 # Calculate the area under the curve (AUC)
@@ -439,113 +487,119 @@ Variable selection
 ------------------
 
 ``` r
-anova(model, test="Chisq")
+backward_model <- step(model, direction = "backward", trace=F)
+
+forward_model <- step(model, direction = "forward", trace=F) 
+
+stepwise_model <- step(model, direction = "both", trace=F) # stepwise
 ```
-
-    ## Analysis of Deviance Table
-    ## 
-    ## Model: binomial, link: logit
-    ## 
-    ## Response: status
-    ## 
-    ## Terms added sequentially (first to last)
-    ## 
-    ## 
-    ##        Df Deviance Resid. Df Resid. Dev  Pr(>Chi)    
-    ## NULL                    1243     1724.3              
-    ## sex     1    1.536      1242     1722.8  0.215269    
-    ## age     1    2.253      1241     1720.6  0.133359    
-    ## perfor  1    2.521      1240     1718.0  0.112335    
-    ## adhere  1    7.809      1239     1710.2  0.005198 ** 
-    ## nodes   1  107.517      1238     1602.7 < 2.2e-16 ***
-    ## differ  1    0.571      1237     1602.1  0.449886    
-    ## extent  1   16.320      1236     1585.8 5.349e-05 ***
-    ## surg    1    6.336      1235     1579.5  0.011831 *  
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-`anova()` 함수는 모형의 적합(변수가 추가되는)단계별로 이탈도의 감소량과 유의성 검정 결과를 제시
-결과적으로 adhere, nodes, extent, surg 변가 추가면서 생겨나는 deviance의 감소량이 통계적으로 유의한 것임을 나타내었다.
-
-``` r
-step(model, direction = "backward", trace=F)
-```
-
-    ## 
-    ## Call:  glm(formula = status ~ adhere + nodes + extent + surg, family = "binomial", 
-    ##     data = data_train)
-    ## 
-    ## Coefficients:
-    ## (Intercept)       adhere        nodes       extent         surg  
-    ##     -2.5380       0.4866       0.1957       0.5749       0.3502  
-    ## 
-    ## Degrees of Freedom: 1243 Total (i.e. Null);  1239 Residual
-    ## Null Deviance:       1724 
-    ## Residual Deviance: 1581  AIC: 1591
-
-``` r
-step(model, direction = "forward", trace=F) 
-```
-
-    ## 
-    ## Call:  glm(formula = status ~ sex + age + perfor + adhere + nodes + 
-    ##     differ + extent + surg, family = "binomial", data = data_train)
-    ## 
-    ## Coefficients:
-    ## (Intercept)          sex          age       perfor       adhere  
-    ##   -2.345322    -0.079191    -0.003814     0.321283     0.465046  
-    ##       nodes       differ       extent         surg  
-    ##    0.191190     0.050619     0.568754     0.344413  
-    ## 
-    ## Degrees of Freedom: 1243 Total (i.e. Null);  1235 Residual
-    ## Null Deviance:       1724 
-    ## Residual Deviance: 1579  AIC: 1597
-
-``` r
-step(model, direction = "both", trace=F) # stepwise
-```
-
-    ## 
-    ## Call:  glm(formula = status ~ adhere + nodes + extent + surg, family = "binomial", 
-    ##     data = data_train)
-    ## 
-    ## Coefficients:
-    ## (Intercept)       adhere        nodes       extent         surg  
-    ##     -2.5380       0.4866       0.1957       0.5749       0.3502  
-    ## 
-    ## Degrees of Freedom: 1243 Total (i.e. Null);  1239 Residual
-    ## Null Deviance:       1724 
-    ## Residual Deviance: 1581  AIC: 1591
-
-``` r
-model
-```
-
-    ## 
-    ## Call:  glm(formula = status ~ ., family = "binomial", data = data_train)
-    ## 
-    ## Coefficients:
-    ## (Intercept)          sex          age       perfor       adhere  
-    ##   -2.345322    -0.079191    -0.003814     0.321283     0.465046  
-    ##       nodes       differ       extent         surg  
-    ##    0.191190     0.050619     0.568754     0.344413  
-    ## 
-    ## Degrees of Freedom: 1243 Total (i.e. Null);  1235 Residual
-    ## Null Deviance:       1724 
-    ## Residual Deviance: 1579  AIC: 1597
 
 **trace**옵션은 변수 선택하는 과정을 Console에 출력할지 여부이다.
 
+``` r
+summary(backward_model)
+```
+
+    ## 
+    ## Call:
+    ## glm(formula = status ~ adhere + nodes + extent + surg, family = "binomial", 
+    ##     data = data_train)
+    ## 
+    ## Deviance Residuals: 
+    ##     Min       1Q   Median       3Q      Max  
+    ## -2.6169  -1.0661  -0.6143   1.1253   1.9622  
+    ## 
+    ## Coefficients:
+    ##             Estimate Std. Error z value Pr(>|z|)    
+    ## (Intercept) -2.53802    0.43194  -5.876 4.21e-09 ***
+    ## adhere       0.48657    0.17551   2.772  0.00556 ** 
+    ## nodes        0.19567    0.02212   8.845  < 2e-16 ***
+    ## extent       0.57489    0.14576   3.944 8.01e-05 ***
+    ## surg         0.35020    0.13670   2.562  0.01041 *  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## (Dispersion parameter for binomial family taken to be 1)
+    ## 
+    ##     Null deviance: 1724.3  on 1243  degrees of freedom
+    ## Residual deviance: 1581.4  on 1239  degrees of freedom
+    ## AIC: 1591.4
+    ## 
+    ## Number of Fisher Scoring iterations: 4
+
+``` r
+summary(forward_model)
+```
+
+    ## 
+    ## Call:
+    ## glm(formula = status ~ sex + age + perfor + adhere + nodes + 
+    ##     differ + extent + surg, family = "binomial", data = data_train)
+    ## 
+    ## Deviance Residuals: 
+    ##     Min       1Q   Median       3Q      Max  
+    ## -2.5819  -1.0534  -0.6104   1.1477   1.9804  
+    ## 
+    ## Coefficients:
+    ##              Estimate Std. Error z value Pr(>|z|)    
+    ## (Intercept) -2.345322   0.576389  -4.069 4.72e-05 ***
+    ## sex         -0.079191   0.120441  -0.658   0.5109    
+    ## age         -0.003814   0.005225  -0.730   0.4654    
+    ## perfor       0.321283   0.350406   0.917   0.3592    
+    ## adhere       0.465046   0.177257   2.624   0.0087 ** 
+    ## nodes        0.191190   0.022380   8.543  < 2e-16 ***
+    ## differ       0.050619   0.118769   0.426   0.6700    
+    ## extent       0.568754   0.145958   3.897 9.75e-05 ***
+    ## surg         0.344413   0.137086   2.512   0.0120 *  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## (Dispersion parameter for binomial family taken to be 1)
+    ## 
+    ##     Null deviance: 1724.3  on 1243  degrees of freedom
+    ## Residual deviance: 1579.5  on 1235  degrees of freedom
+    ## AIC: 1597.5
+    ## 
+    ## Number of Fisher Scoring iterations: 4
+
+``` r
+summary(stepwise_model)
+```
+
+    ## 
+    ## Call:
+    ## glm(formula = status ~ adhere + nodes + extent + surg, family = "binomial", 
+    ##     data = data_train)
+    ## 
+    ## Deviance Residuals: 
+    ##     Min       1Q   Median       3Q      Max  
+    ## -2.6169  -1.0661  -0.6143   1.1253   1.9622  
+    ## 
+    ## Coefficients:
+    ##             Estimate Std. Error z value Pr(>|z|)    
+    ## (Intercept) -2.53802    0.43194  -5.876 4.21e-09 ***
+    ## adhere       0.48657    0.17551   2.772  0.00556 ** 
+    ## nodes        0.19567    0.02212   8.845  < 2e-16 ***
+    ## extent       0.57489    0.14576   3.944 8.01e-05 ***
+    ## surg         0.35020    0.13670   2.562  0.01041 *  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## (Dispersion parameter for binomial family taken to be 1)
+    ## 
+    ##     Null deviance: 1724.3  on 1243  degrees of freedom
+    ## Residual deviance: 1581.4  on 1239  degrees of freedom
+    ## AIC: 1591.4
+    ## 
+    ## Number of Fisher Scoring iterations: 4
+
 stepwise, backward가 좋아보인다. AIC가 다른 모델에 비해 낮기 때문이다.
+마찬가지로 deviance를 이용해 검정하게 되면 stepwise, backward는 적절한 모형이라고 할 것이다.
 
 ### Confusion Matrix - stepwise model
 
 ``` r
-model_stepwise <- step(model, direction = "both", trace=F)
-
-
-
-pred_step <- predict(model_stepwise, 
+pred_step <- predict(stepwise_model, 
                      newdata = data_test, type="response")
 pred_type_step <- ifelse(pred_step>=0.5, 1, 0)
 
@@ -599,13 +653,139 @@ ROC_step <- roc(data_test$status, pred_step)
 plot(ROC_step, col = "blue")
 ```
 
-![](Logistic-Regression--colon-data-_files/figure-markdown_github/unnamed-chunk-18-1.png)
+![](Logistic-Regression--colon-data-_files/figure-markdown_github/unnamed-chunk-20-1.png)
 
 ``` r
 auc(ROC_step)
 ```
 
     ## Area under the curve: 0.6675
+
+### Confusion Matrix - backward model
+
+``` r
+pred_back <- predict(backward_model, 
+                     newdata = data_test, type="response")
+pred_type_back <- ifelse(pred_back>=0.5, 1, 0)
+
+
+confusionMatrix(factor(pred_type_back), factor(data_test$status))
+```
+
+    ## Confusion Matrix and Statistics
+    ## 
+    ##           Reference
+    ## Prediction   0   1
+    ##          0 199 126
+    ##          1  71 136
+    ##                                           
+    ##                Accuracy : 0.6297          
+    ##                  95% CI : (0.5871, 0.6709)
+    ##     No Information Rate : 0.5075          
+    ##     P-Value [Acc > NIR] : 9.146e-09       
+    ##                                           
+    ##                   Kappa : 0.2569          
+    ##                                           
+    ##  Mcnemar's Test P-Value : 0.0001194       
+    ##                                           
+    ##             Sensitivity : 0.7370          
+    ##             Specificity : 0.5191          
+    ##          Pos Pred Value : 0.6123          
+    ##          Neg Pred Value : 0.6570          
+    ##              Prevalence : 0.5075          
+    ##          Detection Rate : 0.3741          
+    ##    Detection Prevalence : 0.6109          
+    ##       Balanced Accuracy : 0.6281          
+    ##                                           
+    ##        'Positive' Class : 0               
+    ## 
+
+### ROC - backward model
+
+``` r
+ROC_back <- roc(data_test$status, pred_back)
+```
+
+    ## Setting levels: control = 0, case = 1
+
+    ## Setting direction: controls < cases
+
+``` r
+plot(ROC_back, col = "blue")
+```
+
+![](Logistic-Regression--colon-data-_files/figure-markdown_github/unnamed-chunk-22-1.png)
+
+``` r
+auc(ROC_back)
+```
+
+    ## Area under the curve: 0.6675
+
+stepwise와 backward 모형은 선택된 변수가 같아 같은 모형이므로 AUC와 accuracy가 같은것은 당연하다.
+
+### Confusion Matrix - forward model
+
+``` r
+pred_forward <- predict(forward_model, 
+                     newdata = data_test, type="response")
+pred_type_for <- ifelse(pred_forward>=0.5, 1, 0)
+
+
+confusionMatrix(factor(pred_type_for), factor(data_test$status))
+```
+
+    ## Confusion Matrix and Statistics
+    ## 
+    ##           Reference
+    ## Prediction   0   1
+    ##          0 190 123
+    ##          1  80 139
+    ##                                           
+    ##                Accuracy : 0.6184          
+    ##                  95% CI : (0.5756, 0.6599)
+    ##     No Information Rate : 0.5075          
+    ##     P-Value [Acc > NIR] : 1.71e-07        
+    ##                                           
+    ##                   Kappa : 0.2348          
+    ##                                           
+    ##  Mcnemar's Test P-Value : 0.0032          
+    ##                                           
+    ##             Sensitivity : 0.7037          
+    ##             Specificity : 0.5305          
+    ##          Pos Pred Value : 0.6070          
+    ##          Neg Pred Value : 0.6347          
+    ##              Prevalence : 0.5075          
+    ##          Detection Rate : 0.3571          
+    ##    Detection Prevalence : 0.5883          
+    ##       Balanced Accuracy : 0.6171          
+    ##                                           
+    ##        'Positive' Class : 0               
+    ## 
+
+### ROC - forward model
+
+``` r
+ROC_for <- roc(data_test$status, pred_forward)
+```
+
+    ## Setting levels: control = 0, case = 1
+
+    ## Setting direction: controls < cases
+
+``` r
+plot(ROC_for, col = "blue")
+```
+
+![](Logistic-Regression--colon-data-_files/figure-markdown_github/unnamed-chunk-24-1.png)
+
+``` r
+auc(ROC_for)
+```
+
+    ## Area under the curve: 0.6627
+
+forward model은 기존 변수선택전의 모형과 같으므로 결과또한 같다.
 
 <br>
 <br>
@@ -618,7 +798,8 @@ Comparision
 | Accuracy | 0.6184211 |    0.6296992    |
 |    AUC   | 0.6626661 |    0.6674795    |
 
-표를 만들어 성능을 비교해보니 stepwise를 적용한 모형이 더 낫다.
+표를 만들어 정리해보았다.
+stepwise를 적용한 모형이 더 낫다.
 
 Refer
 -----
@@ -639,6 +820,6 @@ Refer
 
 <https://bioinformaticsandme.tistory.com/296>
 
-### Book
+-   참조 Book
 
 ISLR(Introduction to Statistical Learning with R)

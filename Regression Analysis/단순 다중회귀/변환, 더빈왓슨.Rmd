@@ -1,0 +1,297 @@
+---
+title: "변환, 더빈왓슨"
+author: "JaeKwanKoo"
+output:
+  html_document:
+    fig_height: 6
+    fig_width: 10
+    highlight: textmate
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+    theme: united
+  github_document:
+    toc: yes
+    toc_depth: 4
+  word_document: default
+---  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T, fig.align = "center", message=F, warning=F, fig.height = 5, cache=F, dpi = 300, dev = "png")
+```  
+
+```{r echo=FALSE}
+setwd("D:\\Jae Kwan\\4학년1학기\\선형모형응용 이상진")
+```  
+
+## Library  
+
+```{r message=FALSE, warning=FALSE}
+# manupulate
+library(data.table)
+library(tidyverse)
+
+# analysis
+library(lmtest)
+library(MASS)
+
+# visualization  
+library(corrplot)
+library(ggridges)
+```  
+
+# Tutorial  
+
+
+## 선형성을 위한 변환  
+
+```{r}
+bug <- fread("bug.txt", data.table = F, col.names = c("y", "time"))
+
+
+par(mfrow=c(1,2))
+plot(y~time, data = bug)
+plot(log(y)~time, data = bug)
+```  
+
+```{r}
+model <- lm(y~time, data = bug)
+model_log <- lm(log(y)~time, data = bug)
+
+summary(model)
+summary(model_log)
+```  
+
+후(로그변환)가 수정된 결정계수 값이 더 큰 모습이다.  
+
+
+```{r}
+yhat <- predict(model, bug)
+yhat_log <- exp(predict(model_log, bug)) # return to original value
+
+plot(y~time, data = bug)
+points(yhat~time, bug, col = "red", pch=2)  #pch : plot character
+points(yhat_log~time, bug, col = "blue", pch=3)
+```  
+
+log변환한 모델이 더 잘 적합한 것 같다.  
+
+
+
+## 분산안정화 변환  
+
+```{r}
+restaurant <- fread("restaurant.txt", data.table = F, col.names = c("y","x"))
+
+restaurant %>% head
+```  
+
+
+
+
+
+```{r}
+plot(y~x, data = restaurant)
+```  
+
+x가 커짐에 따라 y의 간격(분산)이 커지고 있는 모습이다.  
+
+
+```{r}
+restaurant$invy <- 1/restaurant$y
+restaurant$x2 <- restaurant$x^2
+restaurant$x3 <- restaurant$x^3
+
+model <- lm(y~x, data = restaurant)
+model2 <- lm(invy~x+x2+x3, data = restaurant)
+
+restaurant$yh <- predict(model)
+restaurant$invyh <- predict(model2)
+
+
+
+par(mfrow=c(1,2))
+
+plot(y~x, data = restaurant)
+points(yh~x, data = restaurant, col = "red", pch=16)
+
+plot(invy~x, data = restaurant)
+points(invyh~x, data = restaurant, col = "blue", pch =16)
+```  
+
+inverse y인 경우는 분산이 줄어든 모습이다.  
+
+
+
+
+## Data - usedcars  
+
+```{r}
+usedcars <- fread("usedcars.txt", data.table = F, 
+                  col.names = c("price", "cc", "mileage", "year", "automatic"))
+
+
+usedcars %>% head
+```  
+
+## EDA  
+
+### scatter plot  
+
+```{r}
+plot(usedcars)
+```  
+
+### corrplot  
+
+```{r}
+usedcars %>% 
+  cor(use="complete.obs") %>%
+  corrplot.mixed(tl.cex=0.85)
+```  
+
+### density  
+
+```{r}
+usedcars %>% gather(key="var",value="value") %>% 
+  ggplot(aes(x=value, y=var)) + 
+  geom_density_ridges()
+```  
+
+
+### normality test of dependent variable price  
+
+```{r}
+shapiro.test(usedcars$price)
+```  
+
+$H_0$ : `price`는 정규분포를 따른다. vs $H_1$ : `price`는 정규분포를 따르지 않는다.  
+
+p-value가 alpha = 0.05보다 충분히 크므로 `price`변수는 정규분포를 따른다고 볼 수 있다.  
+
+
+
+## Modeling  
+
+```{r}
+model <- lm(price~., data = usedcars)
+
+summary(model)
+```  
+
+F통계량이 충분히 크고 p-value가 거의 0이므로 모형은 적절하다고 생각할 수 있다.  
+
+
+## Durbin–Watson test  
+
+```{r}
+dwtest(model)
+```  
+
+오차항들은 서로 상관되어 있지 않다는 것이 중요한 가정이다.  
+만약 오차항들 사이에 상관성이 있으면 추정된 표준오차는 실제 표준오차를 과소추정하는 경향이 있을 것이다.  
+그 결과 실질적인 신뢰구간과 예측구간은 계산된 수치보다 더 좁을 것이다.  
+예를 들어, 95% 신뢰구간은 참 모수값을 포함할 확률이 실제로는 0.95보다 훨씬 낮을 수 있다.  
+또한, 모델과 연관된 p-값들이 실제로 나와야 되는 수치보다 낮을 것이고, 이로 인해 모수가 통계적으로 유의하다고 잘못된 결론을 내릴 수 있다. 요약하면, 오차항이 상관되어 있을 경우 모델에 대해 근거가 부족한 확신을 가질 수 있다.  
+
+Durbin-Watson test는 자기상관성을 확인하기 위한 검정이다.  
+
+$$
+D ={ \sum_{t=2}^{n}(e_t - e_{t-1})^2 \over  \sum_{t=1}^{n}e_t^2}
+$$  
+
+D값이 2 근처이면 자기상관이 0에 가깝다.  
+D값이 0 근처이면 양의 자기상관을 갖는다.  
+
+
+1차 자기상관계수 $\rho$에 대한 가설 검정  
+
+1. $D<D_L$ 이면 귀무가설($\rho$=0)을 기각 - 양의 상관으로 판단  
+2. $D>D_U$ 이면 귀무가설($\rho$=0)을 기각 못함 - 자기상관으로 없음
+3. $D_L\le D \le D_U$ 인 경우, 판단 보류  
+
+
+
+## Box-Cox transformation  
+
+```{r}
+# lambda <- box_cox$x
+# likeli_value<-box_cox$y
+Boxcox <- boxcox(model)
+
+Boxcox$x[which.max(Boxcox$y)]
+```  
+
+$\lambda$ = `r Boxcox$x[which.max(Boxcox$y)]` 일 때, 최대가능도 함수는 최대가 된다.  
+이 값은 거의 0에 가까우므로 log transformation을 이용해보도록 한다.  
+
+```{r}
+log_y <- log(usedcars$price)
+log_model <- lm(log_y~cc+mileage+year+automatic, data = usedcars)
+
+
+
+summary(log_model)
+```  
+
+log변환을 한 뒤에 모형을 적합하니 기존의 모형보다 Adjusted R-squared가 더 높다.  
+또한 Residual standard error도 훨씬 작아진 것을 알 수 있다.  
+
+||기존 모형|log변환 후 모형|
+|---|---|---|
+|adj R-squared|`r summary(model)$adj.r.squared`|`r summary(log_model)$adj.r.squared`|  
+|Residual standard error|101.1|0.1296|  
+
+
+## Data - adsale  
+
+## Modeling  
+
+### only X  
+
+```{r}
+adsale <- fread("adsale.txt", data.table = F, col.names = c("y","x","media"))
+
+adsale
+```  
+
+```{r}
+model <- lm(y~x, data = adsale)
+
+summary(model)
+```
+
+### X+media  
+
+```{r}
+model_dummy <- lm(y~x+factor(media), data = adsale)
+
+summary(model_dummy)
+```  
+
+광고료가 방송이 더 높고 신문은 -2.66만큼 더 낮다는 의미가 된다.  
+factor로 지정하면 R에서는 가변수로 지정하여 회귀를 진행한다.  
+범주형 변수들을 가지고 회귀모형을 적합할 때는 가변수를 이용하게 된다.  
+
+
+## Comparison  
+
+```{r}
+br <- adsale %>% filter(media=="방송")
+np <- adsale %>% filter(media=="신문")
+
+
+plot(y~x, data = adsale)
+
+abline(model, col = "blue")
+abline(model_dummy, col = "red")
+
+text(7,55,"lm(y~x+factor(media)) : including dummy var" , col = "red")
+text(9, 45,"lm(y~x) : excluding dummy var", col = "blue")
+```  
+
+
+가변수를 추가한 모형이 residual standard error이 낮고, adj-R_squared는 더 높다.  
+위의 그래프에서는 신문과 방송의 shift만큼 절편에서 차이가 나는 것을 확인할 수 있다.  
+그 차이는 `r summary(model_dummy)$coefficient[3,1]`만큼이다.  
+

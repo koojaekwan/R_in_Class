@@ -1,0 +1,205 @@
+---
+title: "회귀모형의 선택"
+author: "JaeKwanKoo"
+output:
+  github_document:
+    toc: yes
+    toc_depth: 4
+  word_document: default
+  html_document:
+    fig_height: 6
+    fig_width: 10
+    highlight: textmate
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+    theme: united
+---  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T, fig.align = "center", message=F, warning=F, fig.height = 5, cache=F, dpi = 300, dev = "png")
+```  
+
+```{r echo=FALSE}
+setwd("D:\\Jae Kwan\\4학년1학기\\선형모형응용 이상진")
+```  
+
+## Library  
+
+```{r warning=FALSE, message=FALSE}
+library(data.table)
+library(tidyverse)
+
+library(olsrr) # Cp
+library(qpcR)  # PRESSp
+```  
+
+
+## Data - usedcar  
+
+```{r}
+usedcars <- fread("usedcars.txt", data.table = F, 
+                  col.names = c("price", "cc", "mileage", "year", "automatic"))
+
+usedcars
+```  
+
+
+## Modeling  
+
+**price=year+mileage+automatic  모형과 full model을 비교해보자**  
+
+```{r}
+full_model <- lm(price~., data = usedcars)
+model1 <- lm(price~year+mileage+automatic, data = usedcars)
+
+
+summary(full_model)
+summary(model1)
+```  
+
+두 개의 모형 모두가 적절하지만, 수정된 결정계수는 full model이 더 높다.  
+
+### Mallow's Cp  
+
+**price=year+mileage+automatic  모형의 Cp값을 계산해보자**  
+
+```{r}
+ols_mallows_cp(model1, full_model)
+```  
+
+적합치의 총 평균 오차제곱(total mean squared error)을 최소화 하기 위한 것이다.  
+**Cp를 변수선택의 기준으로 사용할 때는 Cp=p를 최소화하는 모형을 최적모형으로 한다.**  
+
+
+
+* 적합값의 총 평균제곱오차를 최소화하기 위한 기준  
+* Cp=p 에 가까운 모형을 최적 모형으로 선택  
+
+Cp통계량은 낮은 검정오차를 갖는 모델에 대해 작은 값을 가지는 경향이 있으므로. 모델들의 집합에서 최고 모델을 결정할 때 가장 낮은 Cp값을 가지는 모델을 선택한다.  
+
+
+
+### PRESSp  
+
+**price=year+mileage+automatic  모형의 PREEp값을 계산해보자**  
+
+
+```{r}
+PRESS(model1)
+```  
+
+모형선택의 기준인 $R_p^2$, $s_p^2$, $C_p$등은 관측된 자료들에 대한 현재모형의 적합도(quality of fit)가 얼마나 좋은 지를 나타내는 측도들이다.  
+그러나 회귀분석에서 중요한 목적 중의 하나는 예측인데, 실제 문제들에 있어서 적합도가 높은 모형이더라도 낮은 예측도(quality of prediction)를 갖는 경우가 있다. 그러므로 정확도가 높은 예측이 중요한 분석 목적인 경우에는 적합도보다 예측도가 높은 모형을 선택할 필요가 있다.  
+
+PRESSp는 예측도를 나타내는 측도이다.  
+예측오차제곱합(prediction error sum of squares)을 나타낸다.  
+
+$$
+PRESS_p = \sum_{i=1}^n (y_i-\hat{y}_{i(i)})^2
+$$  
+
+n개의 자료를 나누어서 (n-1)개는 추정에 이용하고 나머지 한 개는 예측의 정확도 계산에 사용한 것이다. 이는 cross validation의 개념과 같다.  
+**이 PRESSp의 값을 최소화하는 모형을 최적모형으로 선택하면 된다.**  
+
+
+이 모형의 PRESSp의 값은 `r PRESS(model1)$stat`이다.  
+
+
+
+* 현재모형의 적합도가 아닌 예측도가 높은모형을 선택  
+* 예측잔차제곱합으로 예측잔차들의 제곱합으로 표현  
+
+
+### AIC(Akaike Information Criterion)  
+
+**price=year+mileage+automatic  모형의 AIC값을 계산해보자**  
+  
+
+```{r}
+AIC(model1)
+AIC(full_model)
+```  
+
+full model의 AIC가 더 낮아 더 좋은 모델임을 알 수 있다.  
+
+
+
+* 통계학의 많은 분야에서 사용되는 모형 선택 기준  
+* 가능도함수의 크기와 모수의 개수를 함께 반영  
+* AIC값이 작을수록 좋은 모형으로 판정  
+* 모형이 복잡할수록(모수가 많을수록, p가 클수록) 벌칙  
+
+* SBS,  BIC등 응용된 Criterion 정의  
+
+
+AIC = $-2logL(\hat\theta)+2p$  
+
+
+## Variable Selection  
+
+### Forward  
+
+
+```{r}
+model_intercep <- lm(price~1, data = usedcars)
+
+model_forward <- step(model_intercep, scope = ~cc+mileage+year+automatic,
+                      data = usedcars, direction = "forward")
+
+
+summary(model_forward)
+```  
+
+먼저 null model을 가지고 진행해보자.  
+
+시작 AIC를 확인하고 어떤 변수가 들어옴에 따라 AIC감소 폭이 큰지 확인해보자.  
+AIC가 낮을수록 좋기 때문에 첫 변수는 `cc변수`가 들어올 것이다.  
+
+두 번째 스텝도 마찬가지로 어떤 변수가 들어옴에 따라 AIC감소가 크게 일어나는지 확인하는 등  
+절차를 진행해본다.  
+
+변수를 넣었을 때, AIC가 감소하지 않는다면 넣을 이유가 없을 것이다.  
+
+변수선택 방법으로 forward를 진행했을 때, full model이 가장 좋은 모형임을 알 수 있다.
+
+### Backward  
+
+```{r}
+model_backward <- step(full_model, data = usedcars, direction = "backward")
+
+
+summary(model_backward)
+```  
+
+full model에서 필요없는 변수들을 하나씩 제거하는 방법이다.  
+첫 시작의 AIC는 281.5인데, 어느 변수를 빼면 AIC가 증가한다. 이 말은 더 좋지 않은 모형이 된다는 것이므로 아무 변수를 제거하지 않은 full model이 가장 best라는 말이다.  
+
+
+## Stepwise  
+
+```{r}
+model_stepwise <- step(model_intercep, scope = ~cc+mileage+year+automatic,
+                      data = usedcars, direction = "both")
+
+
+
+summary(model_stepwise)
+```  
+
+단계적 방법이다. 앞의 두 방법을 약간 섞은 방법같이 생각되기도 한다.  
+null model에서 첫 단계로 cc변수를 추가했다면 다음 단계에서는 cc를 빼보기도 하는 등 모든 조합들을 맞춰나간다.  
+계산량이 앞선 두 방법보다 많아지지만, 컴퓨터의 발달로 대부분 이 방법을 사용하는 것 같다.  
+
+
+
+## 요약    
+
+3가지 방법 모두 같은 모형을 선택하고 있다.  
+
+|방법|모형|
+|:---:|:---:|
+|forward|full model|
+|backward|full model|
+|stepwise|full model|  
+

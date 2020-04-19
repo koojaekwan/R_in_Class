@@ -309,7 +309,9 @@ boxplot(data[,"Year"])
 ## Split the data(train, test)  
 
 ```{r}
+set.seed(100)
 index <- createDataPartition(Smarket$Direction, p = 0.75, list = F)
+
 train_market <- Smarket[index, ]
 test_market <- Smarket[-index, ]
 ```  

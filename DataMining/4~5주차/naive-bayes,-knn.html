@@ -654,8 +654,7 @@ model_knn &lt;- train(x = train_market[,-ncol(train_market)],
                 preProcess = c(&quot;center&quot;,&quot;scale&quot;), 
                 tuneGrid = search_grid)
                 # tuneLength = 20) # grid search하지 않을때 k갯수 간격 조정</code></pre>
-<p>grid search를 통해 k에 따른 Accuracy를 확인해보았다.<br />
-k=44일 때, best performance를 보여준다.</p>
+<p>grid search를 통해 k에 따른 Accuracy를 확인해보았다.</p>
 <pre class="r"><code># k-NN 적합 결과
 model_knn</code></pre>
 <pre><code>## k-Nearest Neighbors 
@@ -876,8 +875,6 @@ confusionMatrix(predict_knn2, test_market$Direction )</code></pre>
 ##                                           
 ##        'Positive' Class : Down            
 ## </code></pre>
-<p>정분류율이 살짝 올라갔다.<br />
-민감도는 클수록 좋다</p>
 <table>
 <thead>
 <tr class="header">

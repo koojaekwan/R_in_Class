@@ -561,7 +561,6 @@ model_knn <- train(x = train_market[,-ncol(train_market)],
 ```
 
 grid search를 통해 k에 따른 Accuracy를 확인해보았다.
-k=44일 때, best performance를 보여준다.
 
 ``` r
 # k-NN 적합 결과
@@ -812,9 +811,6 @@ confusionMatrix(predict_knn2, test_market$Direction )
     ##                                           
     ##        'Positive' Class : Down            
     ## 
-
-정분류율이 살짝 올라갔다.
-민감도는 클수록 좋다
 
 |             지표             |                    설명                    | 값                       |
 |:----------------------------:|:------------------------------------------:|:-------------------------|

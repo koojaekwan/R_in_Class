@@ -1,0 +1,240 @@
+---
+title: "비선형 회귀모형"
+author: "Jae Kwan Koo"
+output:
+  html_document:
+    fig_height: 6
+    fig_width: 10
+    highlight: textmate
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+  word_document: default
+  github_document:
+    toc: yes
+    toc_depth: 4
+---  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T, fig.align = "center", message=F, warning=F, fig.height = 5, cache=F, dpi = 300, dev = "png")
+```  
+
+```{r echo=FALSE}
+setwd('D:\\Jae Kwan\\4학년1학기\\선형모형응용 이상진')
+```
+
+
+
+* 회귀함수 f가 모수들의 비선형 함수로 주어진 경우  
+
+$$
+Y_i = f(x_i, \theta) +\epsilon_i
+$$  
+
+* 오차항에 대한 가정은 선형모형과 동일  
+* 대부분의 경우, f는 과거의 경험이나 이론에 의하여 형태를 가정  
+* 알려진 비선형 함수 f에 자료를 적합시켜 모수를 추정  
+
+
+## Library  
+
+```{r warning=FALSE, message=FALSE}
+library(tidyverse)
+library(data.table)
+
+library(car)  # qqplot function in car
+```  
+
+## Data - growth1.txt  
+
+```{r fig.width=6, fig.height=5}
+growth <- fread("growth1.txt", data.table = F, col.names = c("y", "x"))
+
+plot(y~x, data = growth)
+```  
+
+
+* 알려진 모형 - growth1.txt자료  
+    * 미캘리스 - 멘텐 모형식  
+    
+    $$
+    f(X,\theta_1,\theta_2) = {\theta_1X \over \theta2+X}
+    $$  
+    * 비선형 회귀식의 설정  
+    
+    $$
+    Y_i = {\theta_1X_i \over \theta_2+X_i} +\epsilon_i
+    $$  
+    * 초기치 탐색 :  
+        * theta1은 식물의 최대 성장치  
+        * theta2는 최대성장치의 반만큼 성장까지 걸리는 시간  
+
+
+
+
+
+* 모수의 추정  
+    * 최소제곱법  
+    
+    $$
+    S(\theta) = \sum\epsilon_i^2 = \sum(Y_i-f(x_i,\theta))^2
+    $$  
+    * 가우스-뉴턴 방법  
+        * 비선형회귀식을 모수에 대한 선형함수로 근사하여 선형회귀분석방법으로 모수를 추정  
+        
+        * 모수에 대한 초기값 설정 필요  
+        * 과거의 분석이나 경험, 지식에 의한 초기값을 설정  
+        * 초기값에 따라 국소최적점에 수렴하는 문제 발생 주의  
+        
+        
+
+데이터마다 비선형모형들이 각각 다르다.  
+알려진 모형은 참조만 하자  
+        
+## Model  
+
+```{r}
+growth.nls <- nls(y~theta1*x/(theta2+x), data = growth, start = list(theta1=22, theta2=9), trace = T)
+
+
+summary(growth.nls)
+```  
+
+`nls`함수는 기본적으로 가우스 뉴턴방법 사용한다.  
+start인자에 모수의 초기값을 리스트화 한다.  
+trace는 기본으로 F이다. 반복 단계별로 출력하는 것은 T이고 최종결과만 작성하는 것은 F    
+
+* `nls()`  
+    * formula = 모형식, 추정하고자하는 수식을 설정, 모수이름 설정  
+    * data = 자료명  
+    * start = 모형식에서 설정된, 모수의 초기값을 리스트, 벡터로 입력  
+    * algorithm = 모수추정방법, 기본값은 가우스-뉴턴  
+    * trace = 수렴단계값의 출력  
+    
+
+
+### Fitting  
+
+```{r fig.width=6, fig.height=5}
+theta <- coef(growth.nls)
+
+plot(y~x, data = growth)
+curve(theta[1]*x/(theta[2]+x), add = T, col = 2)
+```  
+
+`coef`함수를 통해 theta1, theta2의 값을 할당한다.  
+`curve`함수에서 add = T로 두면 이전 plot에 이어서 그린다.  
+
+
+### 비선형 회귀모형에서의 추론  
+
+```{r}
+deviance(growth.nls)/df.residual(growth.nls)  #오차분산의 추정값 s^2 
+
+
+
+# 모수 theta1, theta2의 95% 신뢰구간
+
+# vcov : covariance matrix, variance of theta1
+coef(growth.nls)[1]+qt(c(0.025,0.975),16)*sqrt(vcov(growth.nls)[1,1]) 
+
+coef(growth.nls)[2]+qt(c(0.025,0.975),16)*sqrt(vcov(growth.nls)[2,2])
+
+
+
+# 가설 H_0 : theta1 = 30 에 대한 t 검정
+abs(coef(growth.nls)[1]-30)/sqrt(vcov(growth.nls)[1,1]) > qt(0.975,16) 
+# qt(0.025,16, lower.tail=F)
+```  
+
+모수-30을 standard error로 나눠준게 t보다 큰지 확인한다. (자유도는 18에서 모수2개이므로 16이다)  
+95% 신뢰구간이 30을 포함하지 않음 -> 귀무가설기각  
+
+### 잔차분석  
+
+```{r fig.width=8, fig.height=8}
+par(mfrow=c(2,2))
+
+r <- residuals(growth.nls,type="pearson") # 피어슨 표준화잔차
+
+plot(r); plot(growth$x,r)
+qqPlot(r); plot(predict(growth.nls),r)
+```  
+
+잔차그림을 보니 독립성보장  
+추정치와 residual -> 이 정도는 등분산을 만족한다고 봐도 될듯하다.(이전에 전체적으로 커브가 잘 피팅된다는걸 본 후 종합적으로 결정하였음)  
+
+정규성도 잘 만족이 된다고 판단한다.  
+
+predict값이랑 비교해봐도 전체적으로 등분산도 잘 만족이 된다.  
+
+## New model  
+
+$$
+f(X,\beta_1,\beta_2) = \beta_1(1-e^{-\beta_2 X})
+$$  
+
+* 초기치 탐색  
+    * beta1은 식물의 최대 성장치 : 22  
+    * beta2는 최대성장치의 반만큼 성장까지 걸리는 시간으로 계산  
+
+$$\beta_2 = {-ln(0.5)\over X_{1/2}} : 0.05$$  
+
+```{r}
+growth.nls2 <- nls(y~beta1*(1-exp(-beta2*x)), data = growth, 
+                   start = list(beta1=22, beta2=0.05), trace = T)
+
+
+summary(growth.nls2)
+```  
+
+
+```{r fig.width=6, fig.height=5}
+theta <- coef(growth.nls2)
+
+plot(y~x, data = growth)
+curve(theta[1]*x/(theta[2]+x), add = T, col = 2)
+```  
+
+새로운 비선형함수는 fitting이 맞지 않다  
+
+## 추론  
+
+```{r}
+deviance(growth.nls2)/df.residual(growth.nls2)  #오차분산의 추정값 s^2 
+
+
+
+# 모수 beta1, beta2의 95% 신뢰구간
+
+# vcov : covariance matrix, variance of beta1
+coef(growth.nls2)[1]+qt(c(0.025,0.975),16)*sqrt(vcov(growth.nls2)[1,1]) 
+
+coef(growth.nls2)[2]+qt(c(0.025,0.975),16)*sqrt(vcov(growth.nls2)[2,2])
+
+
+
+# 가설 H_0 : theta1 = 30 에 대한 t 검정
+abs(coef(growth.nls2)[1]-30)/sqrt(vcov(growth.nls2)[1,1]) > qt(0.975,16) 
+# qt(0.025,16, lower.tail=F)
+```  
+
+beta1이 30인지에 대한 가설은 유의수준 95%에서 기각된다.  
+
+
+## 잔차분석  
+
+```{r fig.width=8, fig.height=8}
+par(mfrow=c(2,2))
+
+r <- residuals(growth.nls2,type="pearson") # 피어슨 표준화잔차
+
+plot(r); plot(growth$x,r)
+qqPlot(r); plot(predict(growth.nls),r)
+```  
+
+첫번째 그림을 보면 주기를 가지고 위아래로 파동처럼 움직이는 듯한 잔차의 형태를 보이고 있다.  
+독립성에 위배가 되는 것 같다.  
+
+두번째 그림, 네번째 그림에서는 등분산도 만족하지 못할 것 같다.  
+정규성은 만족하는 것처럼 보인다.  

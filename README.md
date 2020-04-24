@@ -14,12 +14,12 @@
 |Chapter|Contents|
 |:---:|:---:|
 |chapter1|- System|
-|chapter2|- Generate the random nunber <br>
+|chapter2|- Generate the random nunber <br />
 - Chi square test & Kolmogorov-Smirnov test|
-|chapter3|- Linear Congruential Method <br>
-- Monte carlo method <br>  
-    - Hit or Miss <br>
-    - Importance Sampling <br>
+|chapter3|- Linear Congruential Method <br />
+- Monte carlo method <br />
+    - Hit or Miss <br />
+    - Importance Sampling <br />
     - Sample mean method|
 |chapter4|- Newton method|
 |chapter5|- bootstrap|

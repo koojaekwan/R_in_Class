@@ -13,39 +13,19 @@
 
 |Chapter|Contents|
 |:---:|:---:|
-|chapter1|System|
-|chapter2|- Generate the random nunber  -Chi square test & Kolmogorov-Smirnov test|
-|||
-|||
-|||
-|||
-|||
+|chapter1|- System|
+|chapter2|- Generate the random nunber  
+- Chi square test & Kolmogorov-Smirnov test  |
+|chapter3|- Linear Congruential Method  
+- Monte carlo method  
+    - Hit or Miss  
+    - Importance Sampling  
+    - Sample mean method  |
+|chapter4|- Newton method  |
+|chapter5|- bootstrap  |
+|chapter8|- Artificial Neural Network  |
+|chapter9|- Genetic Algorithm  |
 
-    
-3 chapter3  
-
-  - Linear Congruential Method  
-  - Monte carlo method  
-      - Hit or Miss  
-      - Importance Sampling  
-      - Sample mean method  
-      
-4 chapter4  
-
-  - Newton method  
-    
-5 chapter5  
-
-   - bootstrap  
-   
-6 chapter8  
-
-   - Artificial Neural Network  
-   
-7 chapter9  
-
-   - Genetic Algorithm  
-   
 
 ## 2. Multivariate Analysis  
 ### (1) Multivariate Analysis Ⅰ  

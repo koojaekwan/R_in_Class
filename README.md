@@ -11,14 +11,16 @@
 ## 1. Computerized_Statistics  
 ### Build models through statistical simulations.  
 
-1 chapter1  
+|Chapter|Contents|
+|:---:|:---:|
+|chapter1|System|
+|chapter2|- Generate the random nunber  -Chi square test & Kolmogorov-Smirnov test|
+|||
+|||
+|||
+|||
+|||
 
-  - System  
-  
-2 chapter2  
-
-  - Generate the random nunber  
-  - Chi square test & Kolmogorov-Smirnov test  
     
 3 chapter3  
 

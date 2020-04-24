@@ -20,7 +20,7 @@ knitr::opts_chunk$set(echo=T, fig.align = "center", message=F, warning=F, fig.he
 ```  
 
 ```{r echo=FALSE}
-setwd('D:\\Jae Kwan\\4학년1학기\\선형모형응용 이상진')
+setwd('D:\\Jae Kwan\\github\\R_in_class\\Regression Analysis\\비선형회귀모형')
 ```
 
 
@@ -148,7 +148,7 @@ abs(coef(growth.nls)[1]-30)/sqrt(vcov(growth.nls)[1,1]) > qt(0.975,16)
 ```  
 
 모수-30을 standard error로 나눠준게 t보다 큰지 확인한다. (자유도는 18에서 모수2개이므로 16이다)  
-95% 신뢰구간이 30을 포함하지 않음 -> 귀무가설기각  
+95% 신뢰구간이 30을 포함하지 않음 -> 귀무가설 기각  
 
 ### 잔차분석  
 
@@ -219,7 +219,7 @@ abs(coef(growth.nls2)[1]-30)/sqrt(vcov(growth.nls2)[1,1]) > qt(0.975,16)
 # qt(0.025,16, lower.tail=F)
 ```  
 
-beta1이 30인지에 대한 가설은 유의수준 95%에서 기각된다.  
+beta1이 30인지에 대한 가설은 유의수준 0.05에서 기각된다.  
 
 
 ## 잔차분석  

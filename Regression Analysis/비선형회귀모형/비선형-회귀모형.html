@@ -390,7 +390,7 @@ abs(coef(growth.nls)[1]-30)/sqrt(vcov(growth.nls)[1,1]) &gt; qt(0.975,16) </code
 ##   TRUE</code></pre>
 <pre class="r"><code># qt(0.025,16, lower.tail=F)</code></pre>
 <p>모수-30을 standard error로 나눠준게 t보다 큰지 확인한다. (자유도는 18에서 모수2개이므로 16이다)<br />
-95% 신뢰구간이 30을 포함하지 않음 -&gt; 귀무가설기각</p>
+95% 신뢰구간이 30을 포함하지 않음 -&gt; 귀무가설 기각</p>
 </div>
 <div class="section level3">
 <h3>잔차분석</h3>
@@ -467,7 +467,7 @@ abs(coef(growth.nls2)[1]-30)/sqrt(vcov(growth.nls2)[1,1]) &gt; qt(0.975,16) </co
 <pre><code>## beta1 
 ##  TRUE</code></pre>
 <pre class="r"><code># qt(0.025,16, lower.tail=F)</code></pre>
-<p>beta1이 30인지에 대한 가설은 유의수준 95%에서 기각된다.</p>
+<p>beta1이 30인지에 대한 가설은 유의수준 0.05에서 기각된다.</p>
 </div>
 <div id="-1" class="section level2">
 <h2>잔차분석</h2>

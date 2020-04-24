@@ -39,4 +39,10 @@
 - 비선형회귀모형  
 
 
-##
+## 4. Data Mining  
+
+|Class|Contents|
+|:---:|:---:|
+|1주차|Processing|
+|2주차|Logistic Regression|
+|4~5주차|<ul><li>naive bayes</li><li>knn</li></ul>|

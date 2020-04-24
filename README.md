@@ -15,8 +15,7 @@
 |:---:|:---:|
 |chapter1| System|
 |chapter2| Generate the random nunber <br /> Chi square test & Kolmogorov-Smirnov test|
-|chapter3| Linear Congruential Method <br /> Monte carlo method <br />
-Hit or Miss <br /> Importance Sampling <br /> Sample mean method|
+|chapter3| Linear Congruential Method <br /> Monte carlo method <br /> <ul><li>Hit or Miss</li><li>Importance Sampling</li><li>Sample mean method</li></ul>|
 |chapter4| Newton method|
 |chapter5| bootstrap|
 |chapter8| Artificial Neural Network|

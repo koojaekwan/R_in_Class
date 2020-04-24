@@ -19,20 +19,24 @@
 |chapter4| Newton method|
 |chapter5| bootstrap|
 |chapter8| Artificial Neural Network|
-|chapter9| Genetic Algorithm|
+|chapter9| Genetic Algorithm|  
+
 
 
 ## 2. Multivariate Analysis  
-### (1) Multivariate Analysis Ⅰ  
-### (2) Multivariate Analysis Ⅱ  
-- CRA(Correspondence Analysis)  
-- DCA(Discriminant Classification Analysis)  
-- MS(Multidimensional Scaling)  
 
-### (3) Project  
-- This is a comprehensive report  
-
-[View the Project!](https://koojaekwan.github.io/multivariate_proj/project.html)  
+|Class|Contents|
+|:---:|:---:|
+|Multivariate Analysis Ⅰ|<ul><li>Multivariate Analysis?</li><li>PCA</li><li>FA</li><li>CA</li></ul>|
+|Multivariate Analysis Ⅱ|<ul><li>CRA(Correspondence Analysis)</li><li>DCA(Discriminant Classification Analysis)</li><li>MS(Multidimensional Scaling)</li></ul>|
+|Project|<ul><li>다변량 분석기법을 활용한 종합적인 보고서입니다. 아래 링크를 통해 확인하면 됩니다. 대쉬보드를 이용해 정리하였습니다.</li><li>[View the Multivariate Analysis Project!](https://koojaekwan.github.io/multivariate_proj/project.html)</li></ul>|
 
 
-## 3. Regression Analysis
+## 3. Regression Analysis  
+
+- 단순회귀, 다중회귀  
+- 반응표면분석, 가중최소제곱법, Boxcox  
+- 비선형회귀모형  
+
+
+##

@@ -46,3 +46,4 @@
 |1주차|Processing|
 |2주차|Logistic Regression|
 |4~5주차|<ul><li>naive bayes</li><li>knn</li></ul>|
+|6주차~7주차|

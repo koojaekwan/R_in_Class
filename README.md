@@ -42,6 +42,7 @@
 |Class|Contents|
 |:---:|:---:|
 |1주차|<ul><li>[Processing](https://koojaekwan.github.io/R_in_Class/DataMining/1%EC%A3%BC%EC%B0%A8/Processing.html)</li><li>[Processing2](https://koojaekwan.github.io/R_in_Class/DataMining/1%EC%A3%BC%EC%B0%A8/Processing-2-.html)</li></ul>|
-|2주차|Logistic Regression|
-|4~5주차|<ul><li>naive bayes</li><li>knn</li></ul>|
-|6주차~7주차|ANN|
+|2주차|[Logistic Regression](https://koojaekwan.github.io/R_in_Class/DataMining/2%EC%A3%BC%EC%B0%A8/Logistic-Regression--colon-data-.html)|
+|4~5주차|[naive bayes & knn](https://koojaekwan.github.io/R_in_Class/DataMining/4~5%EC%A3%BC%EC%B0%A8/naive-bayes,-knn.html)|
+|6주차~7주차|[ANN](https://koojaekwan.github.io/R_in_Class/DataMining/6%EC%A3%BC%EC%B0%A8/ANN.html)|
+|8주차~9주차|<ul><li>[Market Basket Analysis](https://koojaekwan.github.io/R_in_Class/DataMining/8~9%EC%A3%BC%EC%B0%A8/market-basket-analysis.html)</li><li>[Market Basket Analysis2]()</ul>|

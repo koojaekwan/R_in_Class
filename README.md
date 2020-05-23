@@ -1,12 +1,10 @@
 # R_in_Class 
 
-이 컨텐츠들은 수업시간에 한 내용을 바탕으로 정리한 것입니다.  
-더 업데이트 예정입니다.  
+이 컨텐츠들은 수업시간에 한 내용을 바탕으로 정리한 것이다.  
+주기적으로 업데이트 할 예정이다.  
 
-**html파일을 읽고싶으면,   https://koojaekwan.github.io/R_in_Class/ + 원하는 파일의 경로링크로 가세요. 
-예컨대 https://koojaekwan.github.io/R_in_Class/DataMining/2주차/Logistic-Regression--colon-data-.html 이런식 입니다.**  
-
-경로는 폴더를 타고 들어가면 복사할 수 있게 되어있습니다.  
+**html파일을 읽고싶으면,   https://koojaekwan.github.io/R_in_Class/ + 원하는 파일의 경로링크**  
+경로는 폴더를 타고 들어가면 복사할 수 있게 되어있다.  
 
 ## 1. Computerized_Statistics  
 ### Build models through statistical simulations.  
@@ -43,7 +41,7 @@
 
 |Class|Contents|
 |:---:|:---:|
-|1주차|Processing|
+|1주차|[Processing](https://koojaekwan.github.io/R_in_Class/DataMining/1%EC%A3%BC%EC%B0%A8/Processing.html)[Processing2](https://koojaekwan.github.io/R_in_Class/DataMining/1%EC%A3%BC%EC%B0%A8/Processing-2-.html)|
 |2주차|Logistic Regression|
 |4~5주차|<ul><li>naive bayes</li><li>knn</li></ul>|
 |6주차~7주차|ANN|

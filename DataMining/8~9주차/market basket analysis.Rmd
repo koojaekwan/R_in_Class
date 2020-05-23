@@ -1,0 +1,775 @@
+---
+title: "Market Basket Analysis"
+author: "Jae Kwan Koo"
+output:
+  html_document:
+    fig_height: 6
+    fig_width: 10
+    highlight: textmate
+    theme: united
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+    df_print: paged
+  word_document: default
+  github_document:
+    toc: yes
+    toc_depth: 4
+---  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T, fig.align = "center", message=F, warning=F, fig.height = 5, cache=F, dpi = 300, dev = "png")
+```  
+
+# Association rules  
+
+The Apriori algorithm generates association rules for a given data set.  
+An association rule implies that if an item A occurs, then item B also occurs with a certain probability.  
+Let's see an example,  
+
+<center>
+
+| Transaction   | Items                                       | 
+|:--------------|:--------------------------------------------|
+| t1            | {T-shirt, Trousers, Belt}                   | 
+| t2            | {T-shirt, Jacket}                           |   
+| t3            | {Jacket, Gloves}                            |  
+| t4            | {T-shirt, Trousers, Jacket}                 | 
+| t5            | {T-shirt, Trousers, Sneakers, Jacket, Belt} |   
+| t6            | {Trousers, Sneakers, Belt}                  |
+| t7            | {Trousers, Belt, Sneakers}                  |
+
+</center>  
+
+In the table above we can see seven transactions from a clothing store.  
+Each transaction shows items bought in that transaction.  
+We can represent our items as an **item set** as follows:  
+
+$$I=\{i_1, i_2,..., i_k\}$$
+
+In our case it corresponds to:  
+
+$$I=\{T\text- shirt, Trousers, Belt, Jacket, Gloves, Sneakers\}$$
+
+A **transaction** is represented by the following expression:  
+
+$$T=\{t_1, t_2,..., t_n\}$$
+
+For example,  
+
+$$t_1=\{T\text- shirt, Trousers, Belt\}$$
+
+Then, an **association rule** is defined as an implication of the form:  
+
+<center>  
+
+$X \Rightarrow Y$, where $X \subset I$, $Y \subset I$ and $X \cap Y = 0$  
+
+</center>  
+
+
+For example,  
+
+$$\{T\text- shirt, Trousers\} \Rightarrow \{Belt\}$$  
+
+In the following sections we are going to define four metrics to measure the precision of a rule.  
+
+X를 구매하면 Y도 구매하는 규칙으로 해석할 때, X와 Y는 겹치는 것이 없어야 한다.  
+
+## Support(지지도)  
+
+전체 구매 건수 가운데 상품 X와 Y를 동시에 구매한 비율을 의미하며 $P(X\cap Y)$로 나타낸다.  
+지지도가 높으면 X와 Y를 동시에 구매할 확률이 높다라고 볼 수 있다.  
+
+
+Support is an indication of how frequently the item set appears in the data set.  
+
+$$supp(X \Rightarrow Y)=\dfrac{|X \cup Y|}{n}$$  
+
+In other words, it's the number of transactions with both $X$ and $Y$ divided by the total number of transactions.  
+The rules are not useful for low support values.(support값이 낮은 규칙들은 유용하지 않다)  
+
+Let's see different examples using the clothing store transactions from the previous table.  
+
+* $supp(T\text- shirt \Rightarrow Trousers)=\dfrac{3}{7}=43 \%$  
+
+* $supp(Trousers \Rightarrow Belt)=\dfrac{4}{7}= 57 \%$  
+
+* $supp(T\text- shirt \Rightarrow Belt)=\dfrac{2}{7}=28 \%$  
+
+* $supp(\{T\text- shirt, Trousers\} \Rightarrow \{Belt\})=\dfrac{2}{7}=28 \%$  
+
+* $supp(\{T\text- shirt, Trousers\} \Rightarrow \{Belt\})=\dfrac{2}{7}=28 \%$  
+
+## Confidence(신뢰도)  
+
+confidence는 상품 x를 구매한 건수 가운데 Y도 같이 구매한 비율을 의미하며 조건부 확률 $P(Y|X)$로 나타낸다.  
+
+For a rule $X \Rightarrow Y$, confidence shows the percentage in which $Y$ is bought with $X$. It's an indication of how often the rule has been found to be true.  
+(X를 구매하면 얼마나 자주 Y가 구매되는지에 대한 비율을 나타낸다)  
+
+$$conf(X \Rightarrow Y)=\dfrac{supp(X \cup Y)}{supp(X)}$$
+
+For example, the rule $T\text- shirt \Rightarrow Trousers$ has a confidence of 3/4, which means that for 75% of the transactions containing a t-shirt the rule is correct 
+(75% of the times a customer buys a t-shirt, trousers are bought as well). Three more examples:
+
+* $conf(Trousers \Rightarrow Belt)=\dfrac{4/7}{5/7}= 80 \%$
+
+* $conf(T\text- shirt \Rightarrow Belt)=\dfrac{2/7}{4/7}=50 \%$
+
+* $conf(\{T\text- shirt, Trousers\} \Rightarrow \{Belt\})=\dfrac{2/7}{3/7}=66 \%$
+
+
+## Lift(향상도)  
+
+lift는 전체에서 상품 Y를 구매한 비율에 비해 X를 구매한 고객이 Y를 구매한 비율이 몇 배인가를 나타내며, $P(Y|X)\over P(Y)$로 나타낸다.  
+
+* lift = 1 : X와 Y가 동시에 일어날 확률 각각의 확률이 일어날 곱과 같다 => 두 제품이 독립적인 관계에 놓여있다.  
+
+* lift >1 : 동시에 구매할 확률이 더 크므로(분모가 더 크다) 밀접한 관계를 가지고있다.  
+
+* lift <1 : 물품 X, Y를 각각 구매할 확률이 더 크다. 같이 구매할 확률이 더 낮으므로 음의 관계를 가진다.  
+
+상관관계보다 연관성을 가진다라고 하는게 알맞다. 왜냐하면, 선형 또는 비선형의 관계를 이야기하는 것이 아니기 때문이다.  
+
+
+The lift of a rule is the ratio of the observed support to that expected if $X$ and $Y$ were independent, and is defined as  
+
+$$lift(X \Rightarrow Y)=\dfrac{supp(X \cup Y)}{supp(X)supp(Y) }$$  
+
+Greater lift values indicate stronger associations. Let's see some examples:  
+
+* $lift(T\text- shirt \Rightarrow Trousers)=\dfrac{3/7}{(4/7)(5/7)}= 1.05$  
+
+* $lift(Trousers \Rightarrow Belt)=\dfrac{4/7}{(5/7)(4/7)}= 1.4$  
+
+* $lift(T\text- shirt \Rightarrow Belt)=\dfrac{2/7}{(4/7)(4/7)}=0.875$  
+
+* $lift(\{T\text- shirt, Trousers\} \Rightarrow \{Belt\})=\dfrac{2/7}{(3/7)(4/7)}=1.17$  
+
+
+## 생각해볼 것  
+
+1. support(지지도)를 기준으로 했을 때, 높을수록 좋은건가?  
+
+지지도는 두 물건을 동시에 구매하는 비율이므로 높을수록 좋다.  
+비율이 굉장히 낮다고 한다면 우연인 상황 또는 특별한 상황에서 발생한 것이다.  
+그렇다면 지지도는 높을수록 좋다  
+
+그래서 많은 규칙들 중에 최소한의 지지도를 만족하는 연관성 규칙을 찾기위해 `최소 지지도`를 활용한다.(전체구매 내역안에서 적어도 1%~5%를 최소 지지도로 많이 사용)  
+
+최소 지지도를 두는 값이 작은 것 같지만 물건 수가 많으면 두 물건을 매칭한다고 해도 많은 케이스 중에서 1%~5%는 굉장히 크게 될 것이다.  
+
+2. 신뢰도 같은 경우에는 최소 신뢰도는 이야기할 수 없다. 높을수록 좋다  
+
+3. 당연히 향상도는 1보다 크면 좋다.  
+1보다 작아도 의미가 있을 수 있지만, 매출과 연관시어 생각하면 1보다 크면 좋을듯하다.  
+
+<br>
+
+최소 지지도를 만족하고 신뢰도는 높지만 향상도는 1이라면 그 규칙은 의미가 없는 규칙이라고 이해할 수 있을 것 같다.  
+
+<br>
+<br>
+
+규칙을 찾아주는 알고리즘은 Apriori, Eclat 및 FP-Growth 등등 다양하지만, 우리는 `arules`패키지의 apriori함수를 사용해보자. 원래 이름은 `a priori`  
+
+<br>
+
+아래의 항목집합 각각 하나가 구매내역이라고 할 수 있다.  
+
+<center>
+
+| Items         | 
+|:--------------|
+| {a,b,c,d}     | 
+| {a,b,d}       | 
+| {a,b}         | 
+| {b,c,d}       |
+| {b,c}         |
+| {c,d}         |
+| {b,d}         |
+
+
+</center>  
+
+
+또, 각 고객들이 산 물품이다 각 항목에 대한 지지도를 생각해볼 수 있을 것이다.  
+
+<center>
+
+| Items         | Support         | 
+|:--------------|:----------------|
+| {a}           | 3               | 
+| {b}           | 6               |   
+| {c}           | 4               |  
+| {d}           | 5               |  
+
+
+</center>  
+
+예컨대, a는 3건 구매되었다. 비율로 표현해도 되지만 건수로 표현해서 보자.  
+지금은 단일 항목에 대한 지지도이지만, 여러개의 항목을 생각해볼 수 있다.  
+
+<br>
+
+
+<center>
+
+| Items         | Support         | 
+|:--------------|:----------------|
+| {a,b}         | 3               | 
+| **{a,c}**     | 1               |   
+| **{a,d}**     | 2               |  
+| {b,c}         | 3               |  
+| {b,d}         | 4               |  
+| {c,d}         | 3               |  
+
+
+</center>  
+
+쌍으로 묶은 6개 항목이 있다고 하자.  
+예컨대, 항목 집합 안에서 a와 b를 동시에 구매한 항목은 3개이다.  
+
+최소지지도를 3으로 두어 지지도가 3이 안되는 것은 걸러내서 보도록 해보자.  
+즉, {a,c}와 {a,d}는 빈도가 낮으므로 abc 등 더 확장해서 볼 이유는 없으므로 {a,c}와 {a,d}을 포함하는 것은 `비빈발 항목`으로 처리하는 것이다.  
+
+잘 생각해보면 {a,c}와 {a,d}가 이미 적게 구매되었는데 더 크게 확장해서 3개를 같이 구매한 갯수를 세봤자 의미가 있겠는가?  
+더 큰 항목집합은 빈발항목이 될 수 없다. 이 방식으로 집합에 대한 가지치기를 수행한다. **한 항목집합이 비빈발하다면 이 항목집합을 포함하는 모든 집합은 비빈발 항목집합**  
+
+이제 비빈발 항목을 제외하고 3항목을 가지는 집합으로 확장해보자.  
+{a,c}, {a,d}를 포함하는 모든 집합들은 비빈발 항목이 될 것이므로 확장했을 때, a가 들어가면 비빈발 항목을 포함하게 될 것이다. 따라서 비빈발 항목에서 a가 겹치므로 a만 제외하고 나머지 항목들의 집합인 {b,c,d}를 만들었다.  
+
+{b,c,d}도 최소 지지도를 만족하지 못하므로 비빈발 항목이 되어 확장할 이유가 없다. -> 알고리즘은 중단  
+
+**한 항목집합이 빈발하다면 이 항목집합의 모든 부분집합은 역시 빈발항목집합**  
+만약 맨 처음 단일 항목에서 {c}의 지지도가 1이라면 비빈발 항목이다. 여기서 2항목 쌍의 목록으로 확장했을 때, c가 포함되어 있는 것은 볼 필요가 없는 것이다.  
+
+
+<br>
+<br>
+
+## Library  
+
+```{r warning=FALSE, message=FALSE}
+library(tidyverse) # data manipulate
+library(lubridate) # work with dates and times 
+
+
+library(arules) # mining association rules and frequent itemsets
+library(arulesViz) # visualization techniques for association rules
+
+library(patchwork) # grid graphics
+```  
+
+
+## Grocery data {.tabset .tabset-fade .tabset-pills}  
+
+### Transaction object  
+
+```{r}
+data("Groceries")
+
+Groceries
+```  
+
+Groceries데이터셋은 R에 기본적으로 있는 데이터이다.  
+
+```{r}
+Groceries@itemsetInfo
+```  
+
+Initially, the @itemsetInfo is an empty data frame, which won’t be filled with the itemsets until running the apriori function.  
+(apriori함수가 실행될 때, 데이터 셋을 확인할 수 있다.)  
+
+```{r}
+Groceries@itemInfo$labels[1:20]
+```  
+
+The itemInfo component is a dataframe. The labels column stores the item labels or names. The following command returns the first 20 item names.  
+
+
+### Summary  
+
+```{r}
+summary(Groceries)
+```  
+
+Groceries 데이터는 한달동안 팔린 식품 데이터이다.  
+총 9835명의 어떤 물품을 샀는지에 대한 데이터 이며, 169개의 식품이 있다.  
+
+density : 1의 비율(모든 물품을 컬럼으로 두고 산 것을 1, 아닌 것을 0으로 뒀을 때 1의 비율을 말한다.)  
+most frequent items : 가장 많이 구매한 아이템 순서  
+element length distribution : 하나만 구매할 수 있고 여러개 구매할 수 있는데, 동시에 하나만 구매한 이력이 있은경우 size 1이라고 표현(한번에 몇 개의 물품을 동시에 구매했는지)  
+동시에 구매한 물품의 가짓수에 대한 사분위수가 아래에 표현되고 있다.  
+
+식품의 범주를 나눠주었다.  
+* level1 : 대분류  
+* level2 : 중분류  
+* label : 소분류  
+
+5개 범주에 대한 빈도가 높은데(most frequent items) 많이 샀던 물품들 사이에 연관이 있지 않을까 생각해보게 된다.  
+
+
+### Glimpse  
+
+```{r}
+glimpse(Groceries)
+```  
+
+### Structure  
+
+```{r}
+str(Groceries)
+```  
+
+p : 행을 의미  
+dim :169품목, 9835의 발생건수  
+i : 169x9835를 쭉 나열한 것  
+iteminfo : 169개 품목과 3개의 변수, 대중소 분류에 대한 내용  
+
+
+
+## Data Analysis  
+
+Apriori algorithm을 데이터에 적용하기 전에, 거래에 대해 조금 더 알기위해 visualization들을 해보자.  
+`itemFrequencyPlot()`함수는 item frequency bar plot을 만들어 상품들의 분포를 볼 수 있게 한다.  
+
+The itemFrequencyPlot() allows us to show the absolute or relative values.  
+If absolute, it will plot numeric frequencies of each item independently.  
+If relative, it will plot how many times these items have appeared as compared to others, as it’s shown in the following plot.  
+
+
+```{r}
+# Absolute Item Frequency Plot
+
+itemFrequencyPlot(Groceries, topN=15, type="absolute", col="wheat2",xlab="Item name", 
+                  ylab="Frequency (absolute)", main="Absolute Item Frequency Plot")
+```  
+
+
+
+```{r}
+# Relative Item Frequency Plot
+
+itemFrequencyPlot(Groceries, topN=15, type="relative", col="lightcyan2", xlab="Item name", 
+                  ylab="Frequency (relative)", main="Relative Item Frequency Plot")
+```  
+
+Whole milk is the best-selling product by far, followed by other vegetables and rolls/buns.  
+Let’s display some other visualizations describing the time distribution using the ggplot() function.  
+(whole milk가 지금까지 가장 잘팔리는 상품이고 뒷따라서 other vegetavles와 rolls/buns가 잘팔린다.
+시간 분포를 그려 시각화 해보자.)  
+
+## Apriori algorithm  
+
+### Choice of support and confidence  
+
+연관 규칙을 만들기 위한 첫번째 단계는 support 와 confidence의 optimal thresholds를 결정하는 것이다.  
+만약 이 값들을 너무 낮게 선택하면, 알고리즘은 더 실행하는데 오래걸리고 많은 규칙들을 얻게된다.(대부분은 유용하지 않을 것이다)  
+그 다음, 어떤 값을 선택할 것인가? 다른 support와 confidence에 대해서 시도하고 얼마나 많은 규칙들이 각 조합별로 생성되는지는 그래픽적으로 볼 수 있다.  
+
+
+
+```{r}
+# Support and confidence values
+supportLevels <- c(0.1, 0.05, 0.01, 0.005)
+confidenceLevels <- c(0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1)
+
+# Empty integers 
+rules_sup10 <- rep(0,9)
+rules_sup5 <- rep(0,9)
+rules_sup1 <- rep(0,9)
+rules_sup0.5 <- rep(0,9)
+
+# Apriori algorithm with a support level of 10%
+for (i in 1:length(confidenceLevels)) {
+  
+  rules_sup10[i] <- length(apriori(Groceries, 
+                                   control = list(verbose=F),
+                                   parameter=list(sup=supportLevels[1], 
+                                   conf=confidenceLevels[i], 
+                                   target="rules"
+                                   )))
+  
+}
+
+# Apriori algorithm with a support level of 5%
+for (i in 1:length(confidenceLevels)){
+  
+  rules_sup5[i] <- length(apriori(Groceries, 
+                                  control = list(verbose=F),
+                                  parameter=list(sup=supportLevels[2], 
+                                  conf=confidenceLevels[i], 
+                                  target="rules")))
+  
+}
+
+# Apriori algorithm with a support level of 1%
+for (i in 1:length(confidenceLevels)){
+  
+  rules_sup1[i] <- length(apriori(Groceries, 
+                                  control = list(verbose=F),
+                                  parameter=list(sup=supportLevels[3], 
+                                  conf=confidenceLevels[i], 
+                                  target="rules")))
+  
+}
+
+# Apriori algorithm with a support level of 0.5%
+for (i in 1:length(confidenceLevels)){
+  
+  rules_sup0.5[i] <- length(apriori(Groceries, 
+                                    control = list(verbose=F),
+                                    parameter=list(sup=supportLevels[4], 
+                                    conf=confidenceLevels[i], 
+                                    target="rules")))
+  
+}
+```  
+
+다음 그래프는 support levels을 0.005, 0.001, 0.05, 0.1로 정했을 때, 생성되는 규칙 수를 나타낸다.  
+
+```{r}
+# Number of rules found with a support level of 10%
+p1 <- qplot(confidenceLevels, rules_sup10, geom=c("point", "line"), 
+            xlab="Confidence level", ylab="Number of rules found", 
+            main="Apriori with a support level of 10%") +
+  theme_bw()
+
+# Number of rules found with a support level of 5%
+p2 <- qplot(confidenceLevels, rules_sup5, geom=c("point", "line"), 
+            xlab="Confidence level", ylab="Number of rules found", 
+            main="Apriori with a support level of 5%") +   
+  
+  scale_y_continuous(breaks=seq(0, 20, 2)) +
+  theme_bw()
+
+# Number of rules found with a support level of 1%
+p3 <- qplot(confidenceLevels, rules_sup1, geom=c("point", "line"), 
+            xlab="Confidence level", ylab="Number of rules found",
+            main="Apriori with a support level of 1%") +
+  
+  scale_y_continuous(breaks=seq(0, 500, 50)) +
+  theme_bw()
+
+# Number of rules found with a support level of 0.5%
+p4 <- qplot(confidenceLevels, rules_sup0.5, geom=c("point", "line"), 
+            xlab="Confidence level", ylab="Number of rules found",
+            main="Apriori with a support level of 0.5%") +
+  
+  scale_y_continuous(breaks=seq(0, 2000, 200)) +
+  theme_bw()
+
+
+
+# Subplot
+p1+p2+p3+p4 + plot_layout(ncol=2)
+```  
+
+```{r}
+# Data frame
+num_rules <- data.frame(rules_sup10, rules_sup5, rules_sup1, rules_sup0.5, confidenceLevels)
+
+# Number of rules found with a support level of 10%, 5%, 1% and 0.5%
+ggplot(data=num_rules, aes(x=confidenceLevels)) +
+  
+  # Plot line and points (support level of 10%)
+  geom_line(aes(y=rules_sup10, colour="Support level of 10%")) + 
+  geom_point(aes(y=rules_sup10, colour="Support level of 10%")) +
+  
+  # Plot line and points (support level of 5%)
+  geom_line(aes(y=rules_sup5, colour="Support level of 5%")) +
+  geom_point(aes(y=rules_sup5, colour="Support level of 5%")) +
+  
+  # Plot line and points (support level of 1%)
+  geom_line(aes(y=rules_sup1, colour="Support level of 1%")) + 
+  geom_point(aes(y=rules_sup1, colour="Support level of 1%")) +
+  
+  # Plot line and points (support level of 0.5%)
+  geom_line(aes(y=rules_sup0.5, colour="Support level of 0.5%")) +
+  geom_point(aes(y=rules_sup0.5, colour="Support level of 0.5%")) +
+  
+  # Labs and theme
+  labs(x="Confidence levels", y="Number of rules found", 
+       title="Apriori algorithm with different support levels") +
+  
+  
+  scale_x_continuous(breaks=seq(0,1, 0.1)) +
+  scale_y_continuous(breaks=seq(0, 2000, 100)) +
+  theme_bw() +
+  theme(legend.title=element_blank())
+```  
+
+결과를 분석해보면,  
+
+최소 지지도 수준이 10%일 때, 낮은 신뢰도 수준에 대해 오직 몇 개의 규칙만 식별할 수 있다.  
+이것은 우리 데이터셋에 연관이 있는 빈도의 규칙들이 없다는 것을 의미해서 이 값은 선택할 수 없다.   결과에 따른 규칙들이 대표적인 것이 될 수 없다.  
+
+최소 지지도 수준이 5%일 때, 역시 마찬가지이다. 최소 지지도의 수준을 5%보다 더 아래로 봐야 합리적인 신뢰도와 더 많은 수의 규칙을 얻을 수 있다.  
+
+최소 지지도 수준이 1%일 때, 최소 신뢰도 수준을 적어도0.4(40%)으로 선택하면 수 십개 이상의 규칙들을 얻을 수 있다.  
+
+Support level of 0.5%. Too many rules to analyze!(최소 지지도 수준이 0.005일 때는 분석하기에 규칙들이 너무 많다.)  
+
+**To sum up, we are going to use a support level of 1% and a confidence level of 40%.**  
+
+<br>
+<br>
+
+
+## Execution  
+
+Let’s execute the Apriori algorithm with the values obtained in the previous section.  
+
+```{r}
+# Apriori algorithm execution with a support level of 1% and a confidence level of 40%
+
+rules_sup1_conf40 <- apriori(Groceries, 
+                             parameter=list(sup=supportLevels[3], 
+                                            conf=confidenceLevels[6], 
+                                            target="rules"))
+```  
+
+최소 지지도가 1%, 최소 신뢰도가 40%로 선택되었다.  
+
+```{r}
+# Inspect association rules
+inspect(sort(rules_sup1_conf40, by='lift')[1:20])   # sort by lift & top20 lift
+```  
+
+How do we interpret these rules?  
+
+* {citrus fruit, root vegetables}를 구매한 사람 중 58.6%는 또한 {other vegetables}를 구매했다.(confidence)  
+* 전체 구매 건수 가운데 {citrus fruit, root vegetables}와 {other vegetables}를 통시에 구매한 비율은 0.0104이다.(support)  
+* 전체에서 {citrus fruit, root vegetables}를 구매한 고객이 {other vegetables}를 구매한 비율이 전체에서 {other vegetables}를 구매한 비율에 비해 3.03배 높다. 즉, 의미가 있는 규칙이다.  
+
+<br>
+<br>
+
+whole milk와 other vegetables의 절대적인 구매양 자체가 많다보니 규칙들이 죄다 이것만 나오고 있다.  
+잠시 후, 이 두 항목들을 제외하고 한번 다시 살펴보자.  
+
+
+
+### Interactive inspect function  
+
+```{r}
+inspectDT(rules_sup1_conf40)
+```  
+
+We can also create an HTML table widget using the `inspectDT()` function from the aruslesViz package. Rules can be interactively filtered and sorted.  
+
+
+### Visualize association rules  
+
+We are going to use the `arulesViz package` to create the visualizations.  
+Let’s begin with a simple scatter plot with different measures of interestingness on the axes (lift and support) and a third measure (confidence) represented by the color of the points.  
+
+```{r}
+# Scatter plot
+plot(rules_sup1_conf40, measure=c("support", "lift"), shading="confidence")
+```  
+
+The following visualization represents the rules as a graph with items as labeled vertices, and rules represented as vertices connected to items using arrows.  
+
+
+
+```{r}
+# Graph (default layout)
+plot(rules_sup1_conf40, method="graph")
+```  
+
+We can also change the graph layout.  
+
+```{r}
+# Graph (circular layout)
+plot(rules_sup1_conf40, method="graph", control=list(layout=igraph::in_circle()))
+```  
+
+method="graph"로 만든 그림은 정신이 없다.  
+
+```{r}
+# Grouped matrix plot
+plot(rules_sup1_conf40, method="grouped")
+```  
+
+
+We can represent the rules as a grouped matrix-based visualization.  
+The support and lift measures are represented by the size and color of the ballons, respectively.  
+In this case it’s not a very useful visualization, since we only have `whole milk` and `other vegetables` on the right-hand-side of the rules.  
+
+<br>
+<br>
+
+### Except for whole milk & other vegetables {.tabset .tabset-fade .tabset-pills}  
+
+```{r}
+rule <- apriori(Groceries, control = list(verbos=F),
+                parameter = list(support=50/9835, 
+                                 confidence=0.6,
+                                 minlen=2))
+```  
+
+* verbos =F : 코드 실행 시 대략적인 결과를 보여주지 않는다  
+* 9835건 중 50건 이상 구매한 품목만 포함시킬 것(최소 지지도를 선택)  
+* confidence는 0.6이상(최소 신뢰도), 구매항목 최소 2개로 지정(최소 2쌍의 구매품목)  
+
+```{r}
+summary(rule)
+```  
+
+lif<1인 경우는 관심사가 아니다. 2가 넘으므로 왼편과 오른편은 양의 연관성, 연관관계를 가진다.  
+연관규칙이 나타난 물품의 케이스 빈도는 최소 50건부터 최대 92건을 가진다.  
+
+```{r}
+rule <- sort(rule, by='lift')
+inspect(rule[1:20])
+```  
+
+lift기준으로 정렬해서 20개만 보자  
+
+첫번 째 항목을 보면, 동시에 왼편 3개와 오른편 1개를 구매하는 비율이 0.005795628이다.(support)  
+왼편을 사는 사람같은 경우 다른 과일을 구매할 확률은 0.6333이다.(confidence)  
+3가지 항목을 사는 사람들은 다른 과일을 많이 구매하는 규칙이 의미가 있겠구나 <- lift가 높음(3.27)  
+
+
+```{r}
+rule <- apriori(Groceries, control = list(verbos=F),
+                appearance = list(none=c("other vegetables","whole milk")),
+                parameter = list(support=0.0015,
+                                 conf =0.6,
+                                 minlen=2))
+
+
+inspect(sort(rule, by = "lift"))
+```  
+
+whole milk와 other vegetable을 제외하면 나머지 품목들의 비율이 그리 높지 않아 최소 지지도 값을 어느정도 낮게 조정했다.  
+
+* {ham, processed cheese}를 구매하는 고객들 중 63.3%는 {white bread}를 같이 구매했다.    
+* 전체 구매 건수 가운데 {ham, processed cheese}와 {white bread}를 통시에 구매한 비율은 0.00193이다.  
+* 전체에서 {ham, processed cheese}를 구매한 고객이 {white bread}를 구매한 비율이 전체에서 {white bread}를 구매한 비율에 비해 15.05배 높다. 즉, 의미가 있는 규칙이다.  
+
+
+
+
+
+
+
+#### Graph  
+
+
+```{r}
+plot(rule,method="graph")
+# plot(rule,method="graph",interactive = T) 
+```  
+
+`interactive=T`로 두어 동적그림으로도 볼 수 있다. 봤지만 퀄리티는 좋지 않다는 것이 나의 의견이다.  
+
+#### Parallel coordinates plot  
+
+```{r}
+plot(rule, method="paracoord")
+```  
+
+position에서 3,2,1은 LHS를 가리키고, 선의 굵기는 지지도(support), 선의 색 진하기는 향상도(lift)를 가리킨다.  
+
+
+#### Grouped matrix plot  
+
+```{r}
+plot(rule,method="grouped")  
+```  
+
+각 원의 크기가 support, 색의 진하기가 lift  
+Graph나 Grouped matrix plot이나 confidence는 빠져있는 단점도 있다.  
+
+#### Scatter plot  
+
+```{r}
+plot(rule)
+```  
+
+#### Matrix plot  
+
+```{r}
+plot(rule, method="matrix", measure="lift")
+```
+
+
+
+### Specific selection LHS & RHS  
+
+```{r}
+default_soda <- apriori(Groceries, control = list(verbos=F),
+                        appearance = list(rhs="soda",default='lhs'),
+                        parameter = list(support=50/9835, 
+                                         confidence=0.3,
+                                         minlen=2, 
+                                         maxlen=6))
+
+
+inspect(default_soda)
+```  
+
+LHS는 여러종류가 나오는데 RHS는 soda로 고정  
+**관심있어 하는 품목을 soda로 고정한 것이다.**  
+
+
+```{r}
+yogurt_default <- apriori(Groceries, control = list(verbos=F),
+                          appearance = list(lhs='yogurt', default='rhs'),
+                          parameter = list(support=50/9835, confidence=0.3,
+                                           minlen=2, maxlen=6))
+
+inspect(yogurt_default)
+```  
+
+반대로 LHS를 yogurt로 고정하고 RHS를 아무거나 default로 두었다.  
+
+yogurt와 other vegetables를 동시에 구매한 비율은 0.0434이다.  
+yogurt를 산 고객중 31.1%는 other vegetables를 구매했다. 이 규칙은 lift가 1보다 크므로 의미있는 규칙이라고 할 수 있다.  
+
+## Caregory range  
+
+```{r}
+gro <- aggregate(Groceries, "level2")
+
+rule2 <- apriori(gro, parameter = list(confidence=0.5), 
+                 control = list(verbos=F))
+
+inspect(rule2)
+```  
+
+원래 데이터대로 사용하는게 아니라 데이터안에서 level2를 사용하겠다. 가장 디폴트는 하위항목 소분류이다.  
+level2로 상위항목에 대해 이제 살펴보기로 한다.  
+
+아까의 소분류에서 한 단계 위로 범주를 넓혀서 볼 수도 있다.  
+
+
+<br>
+<br>
+
+## Refer  
+
+[Market Basket Analysis in Kaggle](https://www.kaggle.com/xvivancos/market-basket-analysis)  
+
+[patchwork(grid)](https://gotellilab.github.io/GotelliLabMeetingHacks/NickGotelli/ggplotPatchwork.html)  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

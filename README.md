@@ -4,7 +4,8 @@
 주기적으로 업데이트 할 예정이다.  
 
 **html파일을 읽고싶으면,   https://koojaekwan.github.io/R_in_Class/ + 원하는 파일의 경로링크**  
-경로는 폴더를 타고 들어가면 복사할 수 있게 되어있다.  
+경로는 폴더를 타고 들어가면 복사할 수 있게 되어있다. html로 만든 문서들은 여기 아래에 하이퍼링크를 통해 html문서를 읽을 수 있게 했다.  
+아직 하이퍼링크로 표시안된 것은 곧 업데이트를 하겠다. markdown문서는 직접 들어가서 보면 된다.  
 
 ## 1. Computerized_Statistics  
 ### Build models through statistical simulations.  

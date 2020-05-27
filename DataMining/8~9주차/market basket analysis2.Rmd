@@ -1,0 +1,215 @@
+---
+title: "Market Basket Analysis"
+author: "Jae Kwan Koo"
+output:
+  html_document:
+    fig_height: 6
+    fig_width: 10
+    highlight: textmate
+    theme: united
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+    df_print: paged
+  word_document: default
+  github_document:
+    toc: yes
+    toc_depth: 4
+---  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T, fig.align = "center", message=F, warning=F, fig.height = 5, cache=F, dpi = 300, dev = "png")
+```  
+
+
+# Market Basket Analysis - Titanic  
+
+## 데이터 준비하기  
+
+```{r}
+data(Titanic)
+
+Titanic
+```  
+
+R에 내장된 Titanic데이터셋은 3원분할표로 이루어져있다.  
+이 형태를 데이터프레임 형태로 바꿔서보자.  
+
+```{r}
+titanic.df <- as.data.frame(Titanic)
+
+head(titanic.df)
+summary(titanic.df)
+```  
+
+빈도수와 함께 좌석의 클래스, 성별, 연령대, 생존여부 등이 표현되고 있다. 이 빈도들에 대해 전부 풀어서 데이터프레임을 다시 만들어보자.  
+
+```{r}
+titanic <- NULL
+
+for(i in 1:4){
+  titanic <- 
+  cbind( titanic,rep(as.character(titanic.df[,i]), titanic.df$Freq) )
+}
+
+
+titanic <- as.data.frame(titanic)
+names(titanic) <- names(titanic.df)[1:4]
+
+
+titanic
+```  
+
+빈도와 함께 표현된 데이터셋의 열에 대해 Freq만큼 반복하여 풀어주고 있다.  
+이제 빈도에 대한 열은 나타나지않고 그 반복수만큼 행이 늘어난 모습이다.  
+컬럼이름은 이전의 것을 가져왔다.  
+
+## Library  
+
+```{r library}
+library(arules)
+library(arulesViz)
+```  
+
+## apriori 알고리즘  
+
+```{r}
+options(digits=3) # 소수점 3째자리까지만 표현
+
+# 모든 규칙 생성
+rules.all <- apriori(titanic)
+```  
+
+27개의 규칙이 발견되었다.  
+
+```{r}
+inspect(rules.all)
+```  
+
+규칙의 우변(rhs)이 생존 여부(Survived)와 관계된 규칙이다.  
+
+
+
+```{r}
+rules <- apriori(titanic, 
+                 control = list(verbose=F),
+                 parameter = list(minlen=2, supp=0.005, conf=0.8),
+                 appearance = list(rhs=c("Survived=No", "Survived=Yes"),
+                                   default="lhs"))
+```  
+
+* 최소부분집합크기 : 2  
+* 최소지지도 : 0.005  
+* 최소신뢰도 : 0.8  
+
+옵션을 새롭게 한 뒤 다시 규칙을 살펴보기로 했다.  
+
+
+```{r}
+inspect(rules)
+```  
+
+12개의 규칙들이 발견되었다.  
+
+```{r}
+rules.sorted <- sort(rules, by="lift") # 향상도(lift) 기준으로 정렬
+
+inspect(rules.sorted)
+```  
+
+첫 줄에서 클래스가 2등석이면서 연령대가 Child이면 생존한다는 규칙은 클래스가 2등석이면서 여성이고 Child이면 생존한다라는 규칙을 포함한다. 즉, 중복되는 규칙들이 존재한다.  
+중복되는 규칙들을 찾아보자.  
+
+### 중복되는 규칙 제거  
+
+```{r}
+subset.matrix <- is.subset(rules.sorted, rules.sorted)
+```  
+
+12개의 규칙이 존재하는 rules.sorted변수에 대해 중복되는 규칙 찾을 것이다. 12*12 행렬 (12개규칙임을 위에서 알았다)  
+
+`is.subset()`함수는 subset인지 확인하는 것이다. 자기 자신은 자기 자신의 부분집합이니까 subset에 포함이 된다.  
+
+* **|** : subset이 맞음  
+* **.** : subset이 아님  
+
+|과 .은 각각 1과 0을 의미한다.  
+
+예를 들면, 아까처럼 두번째 규칙은 첫번째 규칙에 포함되니까 (1,2)원소가 |이다. 하지만 첫번째 규칙은 두번째 규칙의 subset이 아니니까 .이다.  
+
+```{r}
+subset.matrix[subset.matrix==diag(12)] <- F
+
+redundant <- colSums(subset.matrix, na.rm = T) >= 1
+which(redundant)
+
+# 중복되는 규칙 삭제
+rules.pruned <- rules.sorted[!redundant]
+
+inspect(rules.pruned)
+```  
+
+대각에 있는  원소는 자신이 자신의 부분집합이냐고 묻는 것이므로 우리가 원하는 의미있는 정보는 아니다. 따라서 대각원소들에 대해서는 False로 넣었다.  
+열 기준으로 summation을 했을 때, 0이 아닌 숫자가 존재한다는 것은 그 열에 대한 규칙은 어느 다른 규칙 한 가지 이상의 subset이라는 것을 의미한다. 따라서 중복컬럼들을 제외하고 다시 규칙을 살펴보기로 한다.  
+
+## Visualization {.tabset .tabset-fade .tabset-pills}  
+
+### Scatter plot  
+
+```{r}
+plot(rules.sorted)
+```  
+
+default option : measure = c("support", "confidence"), shading="lift"  
+
+```{r}
+plot(rules.sorted, shading="order")
+```  
+
+색의 진하기인 lift를 그룹으로 그려주게 된다.  
+
+```{r}
+# interactive
+# 선택된 규칙을 조사(inspect), 줌인(줌아웃), 규칙 필터링(color key에서 절단값 클릭)
+
+# plot(rules.sorted, measure=c("support", "lift"), shading="confidence", interactive=TRUE) 
+```  
+
+
+### Graph  
+
+```{r}
+plot(rules.sorted, method="graph") 
+# 각 원의 크기가 support, 색의 진하기가 lift, grouped나 graph나 confidence는 모두 빠져있다는 단점도 있다.
+```
+
+
+### Grouped matrix plot  
+
+```{r}
+plot(rules.sorted, method="grouped") # 생략된 아이템이 +1items라고 표현되고 있음
+```  
+
+
+### Parallel coordinates plot  
+
+```{r}
+# 평행좌표그림
+
+plot(rules.sorted, method="paracoord", control=list(reorder=TRUE))
+```  
+
+3,2,1 : lhs를 지칭  
+선의 굵기 : 지지도  
+선의 진하기 : 향상도  
+
+### Matrix plot  
+
+```{r}
+## 행렬-기반 시각화
+plot(rules.sorted, method="matrix", measure="lift")
+plot(rules.sorted, method="matrix3D", measure="lift")
+```
+
+
+
